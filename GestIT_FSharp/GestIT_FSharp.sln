@@ -7,6 +7,10 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LeapDriver", "LeapDriver\Le
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Test", "Test\Test.fsproj", "{C31CD09E-832B-4827-B20D-4DAD4C363E4A}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MouseDriver", "MouseDriver\MouseDriver.fsproj", "{C522EF8D-80D3-45EF-91ED-7D645015B422}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TestMouseDriver", "TestNoLeap\TestMouseDriver.fsproj", "{75BDD737-9ACF-4B39-B0E9-0B3AA634716B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +29,14 @@ Global
 		{C31CD09E-832B-4827-B20D-4DAD4C363E4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C31CD09E-832B-4827-B20D-4DAD4C363E4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C31CD09E-832B-4827-B20D-4DAD4C363E4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C522EF8D-80D3-45EF-91ED-7D645015B422}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C522EF8D-80D3-45EF-91ED-7D645015B422}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C522EF8D-80D3-45EF-91ED-7D645015B422}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C522EF8D-80D3-45EF-91ED-7D645015B422}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75BDD737-9ACF-4B39-B0E9-0B3AA634716B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75BDD737-9ACF-4B39-B0E9-0B3AA634716B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75BDD737-9ACF-4B39-B0E9-0B3AA634716B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75BDD737-9ACF-4B39-B0E9-0B3AA634716B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

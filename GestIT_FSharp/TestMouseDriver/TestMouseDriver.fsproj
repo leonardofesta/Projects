@@ -5,13 +5,12 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>75b1878d-0959-4351-9be5-775a7b1a1021</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>GestIT_FSharp</RootNamespace>
-    <AssemblyName>GestIT_FSharp</AssemblyName>
+    <ProjectGuid>75bdd737-9acf-4b39-b0e9-0b3aa634716b</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>TestNoLeap</RootNamespace>
+    <AssemblyName>TestMouseDriver</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <Name>GestIT_FSharp</Name>
-    <TargetFrameworkProfile />
+    <Name>TestMouseDriver</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,8 +20,9 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\GestIT_FSharp.XML</DocumentationFile>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <DocumentationFile>bin\Debug\TestNoLeap.XML</DocumentationFile>
+    <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -31,29 +31,41 @@
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\GestIT_FSharp.XML</DocumentationFile>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DocumentationFile>bin\Release\TestNoLeap.XML</DocumentationFile>
+    <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib" />
+    <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <Compile Include="MouseTest.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GestIT_FSharp\GestIT_FSharp.fsproj">
+      <Name>GestIT_FSharp</Name>
+      <Project>{75b1878d-0959-4351-9be5-775a7b1a1021}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\MouseDriver\MouseDriver.fsproj">
+      <Name>MouseDriver</Name>
+      <Project>{c522ef8d-80d3-45ef-91ed-7d645015b422}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" Condition=" Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')" />
-  <ItemGroup>
-    <Compile Include="GestIT_Library.fs" />
-    <Compile Include="PlaybackSensor.fs" />
-    <Compile Include="Utils.fs" />
-    <None Include="TestSerialization.fsx" />
-    <Compile Include="History.fs" />
-    <Compile Include="ObservableFeature.fs" />
-    <Compile Include="HistoryEngine.fs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="mscorlib" />
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-  </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
