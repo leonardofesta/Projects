@@ -45,7 +45,7 @@ type ObservableFeature<'U>() =
     notifyObservers (fun observer -> observer.OnCompleted())
     observers <- [] 
 
-  abstract member runCheck : HistoryContainer<_> -> unit
+  abstract member runCheck :  HistoryContainer<_> -> unit
 
 //abstract member triggerEvt : () -> ()
 //vedere come e dove fare partire i trigger degli eventi

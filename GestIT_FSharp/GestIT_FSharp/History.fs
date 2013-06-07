@@ -2,6 +2,8 @@
 open GestIT
 open System.Collections.Generic
 
+
+
 type EventGestIT = 
     abstract member getTimestamp : unit -> System.DateTime
 
@@ -9,7 +11,7 @@ type EventGestIT =
 type HistoryContainer<'U> when 'U :> EventGestIT ()  = 
     
     let mutable framedist = 100.0 // millisec float
-    let mutable timelength = 10000.0 // in milliseconds
+    let mutable TIMELENGTH = 10000.0 // in milliseconds
     let mutable recording = false
     let mutable eventlist = new List<'U>() 
 
@@ -20,14 +22,14 @@ type HistoryContainer<'U> when 'U :> EventGestIT ()  =
         and set v = framedist <- v
  
     member this.Timelength   
-        with get() = timelength
-        and set v = timelength <- v 
+        with get() = TIMELENGTH
+        and set v = TIMELENGTH <- v 
  
     member this.Recording
         with get() = recording
         and set v = recording <- v
     
-    member private this.Eventlist
+    member this.Eventlist
         with get() = eventlist
 
 
@@ -41,11 +43,16 @@ type HistoryContainer<'U> when 'U :> EventGestIT ()  =
     //una roba riconosciuta a prescinedere... un'altra serie di eventi che invece tipo posizionali vanno registrati ogni x per non smattare
     //magari fare 2 sottotipi a partire da EventArgsGestIT che splittano la roba a livello di inserimento boh
     member this.addevt(event:'U):unit =
-        if (this.Eventlist.Count = 0) 
-            then this.Eventlist.Add(event)
+        this.Eventlist.Add(event)
+        this.Eventlist.RemoveAll( new System.Predicate<_>( (fun x -> x.getTimestamp() < event.getTimestamp().AddMilliseconds(-1.0*TIMELENGTH)))) |>ignore
+
+
+//        if (this.Eventlist.Count = 0) 
+//            then 
+//                this.Eventlist.Add(event)
             //aggiungi l'evento se dista almeno framedist dall'ultimo ricevuto
-            elif (this.Eventlist.FindLast(new System.Predicate<_>( fun i -> true)).getTimestamp().AddMilliseconds(this.Framedist) > event.getTimestamp())    
-                then this.Eventlist.Add(event)
+//            elif (this.Eventlist.FindLast(new System.Predicate<_>( fun i -> true)).getTimestamp().AddMilliseconds(this.Framedist) > event.getTimestamp())    
+//                then this.Eventlist.Add(event)
      
 
 

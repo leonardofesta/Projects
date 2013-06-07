@@ -32,16 +32,17 @@ namespace LeapDriver
     type KeySensor () =
         inherit UserControl()
         let sensorEvent = new Event<SensorEventArgs<KeyFeatureTypes,KeyEventArgs>>()
-        override x.OnKeyDown(e) =
-            printfn "SPACE DOWN"
-            sensorEvent.Trigger(new SensorEventArgs<_,_>(KeyFeatureTypes.KeyDown, e))
-        override x.OnKeyUp(e) =
-            printfn "SPACE UP"
-            sensorEvent.Trigger(new SensorEventArgs<_,_>(KeyFeatureTypes.KeyUp, e))
         interface ISensor<KeyFeatureTypes,KeyEventArgs> with
             [<CLIEvent>]
             member x.SensorEvents = sensorEvent.Publish
-*)
+
+        override x.OnKeyDown(e) =
+            printfn "SPACE DOWN"
+            sensorEvent.Trigger(new SensorEventArgs<_,_>(KeyFeatureTypes.KeyDown, e))
+
+        override x.OnKeyUp(e) =
+            printfn "SPACE UP"
+            sensorEvent.Trigger(new SensorEventArgs<_,_>(KeyFeatureTypes.KeyUp, e))
 
     // MOUSE features that have to be notified from the sensor //
     type MouseFeatureTypes =
@@ -49,11 +50,13 @@ namespace LeapDriver
         | MouseUp = 1
         | MouseMove = 2
 
-    type MouseSensor () =
+    type MouseSensor (debug) =
         inherit UserControl()
         let mutable down = false
         let sensorEvent = new Event<SensorEventArgs<MouseFeatureTypes,MouseEventArgs>>()
-        let debug = false
+        interface GestIT.ISensor<MouseFeatureTypes,MouseEventArgs> with
+            [<CLIEvent>]
+            member x.SensorEvents = sensorEvent.Publish
 
         override x.OnMouseDown(e) =
             if debug then printfn "MOUSE DOWN"
@@ -70,11 +73,6 @@ namespace LeapDriver
                 if debug then printfn "MOUSE MOVE"
                 sensorEvent.Trigger(new SensorEventArgs<_,_>(MouseFeatureTypes.MouseMove, e))
 
-        interface GestIT.ISensor<MouseFeatureTypes,MouseEventArgs> with
-            [<CLIEvent>]
-            member x.SensorEvents = sensorEvent.Publish
-
-(*
     type TouchFeatureTypes =
         | Start = 0
         | Move = 1

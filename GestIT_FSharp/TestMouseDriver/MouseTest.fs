@@ -100,6 +100,7 @@
                 lbl.Visible <- true
                 lbl.Width <- 200
                 lbl.Height <- 40
+                this.BackColor <- Color.BlueViolet
                 lbl.Location <- new Point(this.Location.X + this.Width / 2 - lbl.Width / 2, this.Location.Y + this.Height / 2 - lbl.Height / 2)
                 lbl.Font <- new Font("Verdana", 10.F)
                 lbl.Text <- "* Frame Superfuffa! *"
