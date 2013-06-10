@@ -38,7 +38,7 @@ type SensorEventArgs<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs (t
 type ISensor<'T,'U> when 'T :> System.Enum and 'U :> System.EventArgs =
   [<CLIEvent>]
   abstract member SensorEvents: IEvent<SensorEventArgs<'T,'U>>
-
+  
 /// <summary>
 /// Generic type representing a Petri's Net token.
 /// </summary>

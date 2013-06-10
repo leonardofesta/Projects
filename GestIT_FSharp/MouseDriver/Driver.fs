@@ -31,10 +31,15 @@
     type MouseSensor (debug) =
         inherit UserControl()
         let mutable down = false
-        let sensorEvent = new Event<SensorEventArgs<MouseFeatureTypes,MouseEventArgsGestIT>>()
+        let mutable sensorEvent = new Event<SensorEventArgs<MouseFeatureTypes,MouseEventArgsGestIT>>()
         let formatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter()
         let mutable outputStream : System.IO.Stream = null
         let debugSensor = false
+
+        member this.SensorEvt 
+            with get() = sensorEvent
+            and set(v) = sensorEvent <- v
+
 
         member this.OutputStream
             with get() = outputStream

@@ -6,10 +6,27 @@ open GestIT.History
 /// A Observable base class which notifies
 /// all observers in parallel 
 
+
+//TODO Capire se meglio inherit event o interface IEvent che dovrebbe comprendere il pezzo di iobservable
+
 [<AbstractClass>]
 type ObservableFeature<'U>() =
+
+  let featureEvent = new Event<_>()
   let mutable observers = []
- 
+
+  [<CLIEvent>]
+  member this.Event = featureEvent.Publish
+
+  member this.EventTrigger = featureEvent.Trigger(true)
+
+  abstract member runCheck :  HistoryContainer<_> -> unit
+
+
+  //abstract member triggerEvt : () -> ()
+  //vedere come e dove fare partire i trigger degli eventi
+(*
+  
   /// Notifies all observers in parallel about the new value
   let notifyObservers f =
     observers
@@ -44,8 +61,7 @@ type ObservableFeature<'U>() =
   member observable.Completed =
     notifyObservers (fun observer -> observer.OnCompleted())
     observers <- [] 
+ *)
 
-  abstract member runCheck :  HistoryContainer<_> -> unit
+  
 
-//abstract member triggerEvt : () -> ()
-//vedere come e dove fare partire i trigger degli eventi

@@ -28,10 +28,8 @@ type DirectionFeature<'U > when 'U :> MouseDriver.MouseEventArgsGestIT (dir:Dire
             let lastelement = Seq.last recentevent
 
             //qualche roba con i generics boh... da capire
-            if (List.forall<MouseEventArgsGestIT>( fun x -> x.X >= firstelement.X) recentevent)
-                then
-                    if ((firstelement.X - lastelement.X ) >0) 
+            if (List.forall<MouseEventArgsGestIT>( fun x -> x.X >= firstelement.X) recentevent) && ((firstelement.X - lastelement.X ) >0) 
                        then
-                            this.Completed  
+                            this.EventTrigger  
             ()
 

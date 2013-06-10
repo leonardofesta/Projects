@@ -39,7 +39,7 @@ type HistoryEngine<'U> when 'U :> System.EventArgs and 'U :> EventGestIT (expres
         gestITExpr.ToGestureNet(sensor) |> ignore
 
     member x.Subscribe(feat:ObservableFeature<_>, observer:System.IObserver<_>) =
-            feat.Subscribe(fun observer -> ())
+            feat.Event.Add(fun observer -> ())
 
 
     member x.Unsubscribe(feat:ObservableFeature<_>, observer:System.IObserver<_>) =
