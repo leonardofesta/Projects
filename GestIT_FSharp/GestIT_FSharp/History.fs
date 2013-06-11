@@ -44,8 +44,12 @@ type HistoryContainer<'U> when 'U :> EventGestIT ()  =
     //magari fare 2 sottotipi a partire da EventArgsGestIT che splittano la roba a livello di inserimento boh
     member this.addevt(event:'U):unit =
         this.Eventlist.Add(event)
-        this.Eventlist.RemoveAll( new System.Predicate<_>( (fun x -> x.getTimestamp() < event.getTimestamp().AddMilliseconds(-1.0*TIMELENGTH)))) |>ignore
-
+        this.Eventlist.RemoveAll( new System.Predicate<_>( (fun x -> x.getTimestamp() <= event.getTimestamp().AddMilliseconds(-1.0*TIMELENGTH)))) |>ignore
+(*
+        System.Diagnostics.Debug.WriteLine(" Primo --> %s " + this.Eventlist.Item(0).getTimestamp().ToString())
+        System.Diagnostics.Debug.WriteLine(" Ultimo --> %s " + this.Eventlist.Item(this.Eventlist.Count-1).getTimestamp().ToString())
+        System.Diagnostics.Debug.WriteLine(" Quantità --> %s " + this.Eventlist.Count.ToString())
+*)
 
 //        if (this.Eventlist.Count = 0) 
 //            then 

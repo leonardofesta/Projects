@@ -1,7 +1,8 @@
-﻿module MouseTest
+﻿module MouseTest2
 
     open GestIT
     open GestIT.FSharp
+    open GestIT.HistoryEngine
     open MouseDriver
     open System.Windows.Forms
     open System.Drawing
@@ -51,31 +52,31 @@
 
             (* Handler *)
             let moving_h (sender, e:SensorEventArgs<MouseFeatureTypes, MouseEventArgsGestIT>) =
-                System.Diagnostics.Debug.WriteLine("Muovendo")
+//                System.Diagnostics.Debug.WriteLine("Muovendo")
                 lbl.Invoke(deleg, "... ~~> Moving <~~ ...") |> ignore
                 lbl.BackColor <- Color.Lavender
                 lbl.Invalidate()
 
             let clickleft_h (sender, e:SensorEventArgs<MouseFeatureTypes, MouseEventArgsGestIT>) =
-                System.Diagnostics.Debug.WriteLine("Click left")
+//                System.Diagnostics.Debug.WriteLine("Click left")
                 lbl.Invoke(deleg, "... ~~> LeftClick <~~ ...") |> ignore
                 lbl.BackColor <- Color.Tomato
                 lbl.Invalidate()
 
             let clickright_h (sender, e:SensorEventArgs<MouseFeatureTypes, MouseEventArgsGestIT>) =
-                System.Diagnostics.Debug.WriteLine("Click right")
+//                System.Diagnostics.Debug.WriteLine("Click right")
                 lbl.Invoke(deleg, "... ~~> RightClick <~~ ...") |> ignore
                 lbl.BackColor <- Color.Aquamarine
                 lbl.Invalidate()
             
             let triple_h (sender, e:SensorEventArgs<MouseFeatureTypes, MouseEventArgsGestIT>) = 
-                System.Diagnostics.Debug.WriteLine("Tripletta")
+//                System.Diagnostics.Debug.WriteLine("Tripletta")
                 lbl.Invoke(deleg, "... ~~> Tripletta <~~ ...") |> ignore
                 lbl.BackColor <- Color.Gold
                 lbl.Invalidate()
 
             let clickmiddle_h (sender, e:SensorEventArgs<MouseFeatureTypes, MouseEventArgsGestIT>) =
-                System.Diagnostics.Debug.WriteLine("Click middle")
+//                System.Diagnostics.Debug.WriteLine("Click middle")
                 lbl.Invoke(deleg, "... ~~> MiddleClick <~~ ...") |> ignore
                 lbl.BackColor <- Color.Honeydew
                 lbl.Invalidate()
@@ -84,13 +85,17 @@
                      (* Update informations in the last enqueued frame *)
                 System.Diagnostics.Debug.WriteLine("Update Information")
                 match e with
-                    | MouseFeatureTypes.MouseDown | MouseFeatureTypes.MouseUp -> (); System.Diagnostics.Debug.WriteLine("mousedown o up") |> ignore
+                    | MouseFeatureTypes.MouseDown -> (); System.Diagnostics.Debug.WriteLine("mousedown") |> ignore 
+                    | MouseFeatureTypes.MouseUp -> (); System.Diagnostics.Debug.WriteLine("mouseup") |> ignore
                     | MouseFeatureTypes.MouseMove -> (); System.Diagnostics.Debug.WriteLine("mousemove") |> ignore
                     | _ -> ()
 
             do
+                
+                
                 let events =  ( ( ( leftB |-> clickleft_h ) |>> ( middleB |-> clickmiddle_h ) |>> ( rightB |-> clickright_h ) ) |-> triple_h) |^| !*(moving |-> moving_h)
-                events.ToGestureNet(s) |> ignore
+                let he = new HistoryEngine<_,MouseFeatureTypes,MouseEventArgsGestIT>(events,s)
+                he.run()
 
 
                 this.MaximizeBox <- true
@@ -121,7 +126,7 @@
                     UpdateInformations(f, e.FeatureType, id)
                  )
                 base.OnLoad(e)
-(*
+
         [<EntryPoint; System.STAThread>]
         let main argv = 
             let mutable ss : ISensor<_,_> option = None
@@ -133,5 +138,3 @@
                                 
                             Application.Run(a)
                             0
-
-*)

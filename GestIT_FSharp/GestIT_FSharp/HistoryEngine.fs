@@ -4,9 +4,9 @@ open GestIT.ObserverFeature
 open System.Collections.Generic
 
 
-type HistoryEngine<'U> when 'U :> System.EventArgs and 'U :> EventGestIT (expression:GestureExpr<_,_>, sens:ISensor<_,_>, ?hc:HistoryContainer<_>) =
+type HistoryEngine<'Y,'X,'U> when 'U :> System.EventArgs and 'U :> EventGestIT and 'X :> System.Enum and 'Y :> GestureExpr<'X,'U> (expression:'Y, sens:ISensor<'X,_>, ?hc:HistoryContainer<_>) =
 
-    let mutable gestITExpr = expression
+    let mutable gestITExpr = expression :> GestIT.GestureExpr<_,_>
     let mutable sensor = sens   
     let hh = match hc with
                       | None -> new HistoryContainer<'V>()
@@ -18,6 +18,7 @@ type HistoryEngine<'U> when 'U :> System.EventArgs and 'U :> EventGestIT (expres
     member x.AddFeature( feat) =
         features.Add(feat)
 
+
     member x.ClearFeatures() =
         features.Clear()
 
@@ -27,7 +28,7 @@ type HistoryEngine<'U> when 'U :> System.EventArgs and 'U :> EventGestIT (expres
     member x.RemoveFeature(feat:ObservableFeature<_>) = 
         features.Remove(feat)
 
-    member x.sendEvt(t:'V) = 
+    member x.sendEvt(t:'U) = 
         hh.addevt(t) |> ignore
 
     member x.run() = 

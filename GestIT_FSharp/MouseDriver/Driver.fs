@@ -6,27 +6,28 @@
     open GestIT
 
    // MOUSE features that have to be notified from the sensor //
-    type MouseFeatureTypes =
+    type MouseFeatureTypes=
         | MouseDown = 0
         | MouseUp = 1
         | MouseMove = 2
 
-    type MouseEventArgsGestIT(button:MouseButtons, clicks:int, x:int, y:int, delta:int, ?ts:System.DateTime) =
+    type MouseEventArgsGestIT(button:MouseButtons, clicks:int, x:int, y:int, delta:int, ts:System.DateTime) =
         inherit MouseEventArgs(button,clicks,x,y,delta)
-        member this.Timestamp =
-            match ts with
-                | None -> System.DateTime.Now
-                | Some t -> t
+
+        let timestamp = ts
         
+        member x.Timestamp = timestamp
+          
         interface GestIT.History.EventGestIT with 
             member x.getTimestamp() =
-                x.Timestamp
+                timestamp
 
         interface System.ICloneable with 
              member this.Clone() =
-                let nuovo = new MouseEventArgsGestIT(this.Button,this.Clicks,this.X,this.Y,this.Delta,this.Timestamp)
+                let nuovo = new MouseEventArgsGestIT(this.Button,this.Clicks,this.X,this.Y,this.Delta,timestamp)
                 nuovo :> obj
 
+        new (b:MouseButtons, c:int, x:int, y:int, d:int) = MouseEventArgsGestIT(b,c,x,y,d,System.DateTime.Now) 
 
     type MouseSensor (debug) =
         inherit UserControl()
@@ -80,7 +81,9 @@
                 sensorEvent.Trigger(new SensorEventArgs<_,_>(MouseFeatureTypes.MouseMove, evargs))
                 x.MyTrigger MouseFeatureTypes.MouseMove evargs
 
+(*
     type EvtComparer() = 
         interface IComparer<MouseEventArgsGestIT> with
-                member x.Compare(a, b) = (a.Timestamp).CompareTo(b.Timestamp)
+                member x.Compare(a, b) = (a.getTimestamp).CompareTo(b.Timestamp)
 
+*)

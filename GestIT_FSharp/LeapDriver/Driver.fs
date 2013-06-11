@@ -410,7 +410,7 @@ namespace LeapDriver
 
         do
             ctrl.AddListener(this) |> ignore
-            ctrl.SetPolicyFlags(Controller.PolicyFlag.POLICYBACKGROUNDFRAMES)
+     //       ctrl.SetPolicyFlags(Controller.PolicyFlag.POLICYBACKGROUNDFRAMES)
 
         member this.OutputStream
             with get() = outputStream

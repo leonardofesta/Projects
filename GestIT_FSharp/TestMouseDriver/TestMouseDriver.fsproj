@@ -48,8 +48,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <Compile Include="MouseTest.fs" />
     <Compile Include="DirectionFeature.fs" />
+    <Compile Include="MouseTest.fs" />
+    <Compile Include="MouseTest2.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GestIT_FSharp\GestIT_FSharp.fsproj">

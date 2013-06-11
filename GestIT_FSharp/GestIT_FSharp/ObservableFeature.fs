@@ -7,7 +7,7 @@ open GestIT.History
 /// all observers in parallel 
 
 
-//TODO Capire se meglio inherit event o interface IEvent che dovrebbe comprendere il pezzo di iobservable
+//TODO Capire se meglio creare o inherit event o instanziare l'interface IEvent che dovrebbe comprendere il pezzo di iobservable
 
 [<AbstractClass>]
 type ObservableFeature<'U>() =
@@ -19,6 +19,8 @@ type ObservableFeature<'U>() =
   member this.Event = featureEvent.Publish
 
   member this.EventTrigger = featureEvent.Trigger(true)
+ 
+
 
   abstract member runCheck :  HistoryContainer<_> -> unit
 
