@@ -18,7 +18,7 @@
         
         member x.Timestamp = timestamp
           
-        interface GestIT.History.EventGestIT with 
+        interface GestIT.History.HEvent with 
             member x.getTimestamp() =
                 timestamp
 

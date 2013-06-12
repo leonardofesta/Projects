@@ -10,15 +10,15 @@ open GestIT.History
 //TODO Capire se meglio creare o inherit event o instanziare l'interface IEvent che dovrebbe comprendere il pezzo di iobservable
 
 [<AbstractClass>]
-type ObservableFeature<'U>() =
+type ObservableFeature<'U>(evt:Event<_>) =
 
-  let featureEvent = new Event<_>()
-  let mutable observers = []
+  let featureEvent = evt
+ // let mutable observers = []
 
   [<CLIEvent>]
   member this.Event = featureEvent.Publish
 
-  member this.EventTrigger = featureEvent.Trigger(true)
+  member this.EventTrigger = featureEvent.Trigger(this)
  
 
 

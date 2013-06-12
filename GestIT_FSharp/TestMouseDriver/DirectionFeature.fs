@@ -14,8 +14,8 @@ type Direction =
     |   Down = 3
 
 type DirectionFeature<'U > when 'U :> MouseDriver.MouseEventArgsGestIT (dir:Direction, dist:int, ms:float) = 
-    inherit ObservableFeature<'U>()
-    
+    inherit ObservableFeature<'U>(new Event<_>())
+
     let mutable direction = dir
     let mutable distance = dist
     let mutable millisec = ms

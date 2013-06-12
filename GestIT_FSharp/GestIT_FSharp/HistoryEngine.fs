@@ -4,16 +4,31 @@ open GestIT.ObserverFeature
 open System.Collections.Generic
 
 
-type HistoryEngine<'Y,'X,'U> when 'U :> System.EventArgs and 'U :> EventGestIT and 'X :> System.Enum and 'Y :> GestureExpr<'X,'U> (expression:'Y, sens:ISensor<'X,_>, ?hc:HistoryContainer<_>) =
+type HistoryID = int
 
-    let mutable gestITExpr = expression :> GestIT.GestureExpr<_,_>
+type HFilter = int
+
+type RecInterface<'U> = 
+    abstract member Record : bool -> unit
+    abstract member AddFilter : HFilter*HistoryID -> bool 
+    
+    // abstract member StartSession :  -> int
+
+
+
+
+type HistoryEngine<'Y,'X,'U> when 'U :> System.EventArgs and 'U :> HEvent and 'X :> System.Enum and 'Y :> GestureExpr<'X,'U> (expression:'Y, sens:ISensor<'X,_>, ?hc:HistoryContainer<_>) =
+
+    let mutable gestITExpr = expression
     let mutable sensor = sens   
     let hh = match hc with
-                      | None -> new HistoryContainer<'V>()
+                      | None -> new HistoryContainer<'V>(5000.0)
                       | Some t -> t
 
     let mutable features = new List<ObservableFeature<_>>()
  
+    member x.Record(value:bool) =
+        hh.Recording <- value
 
     member x.AddFeature( feat) =
         features.Add(feat)
@@ -27,9 +42,6 @@ type HistoryEngine<'Y,'X,'U> when 'U :> System.EventArgs and 'U :> EventGestIT a
 
     member x.RemoveFeature(feat:ObservableFeature<_>) = 
         features.Remove(feat)
-
-    member x.sendEvt(t:'U) = 
-        hh.addevt(t) |> ignore
 
     member x.run() = 
         sensor.SensorEvents.Add(fun d -> 
