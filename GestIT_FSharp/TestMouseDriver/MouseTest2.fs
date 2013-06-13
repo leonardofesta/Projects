@@ -95,7 +95,12 @@
                 
                 let events =  ( ( ( leftB |-> clickleft_h ) |>> ( middleB |-> clickmiddle_h ) |>> ( rightB |-> clickright_h ) ) |-> triple_h) |^| !*(moving |-> moving_h)
                 let he = new HistoryEngine<_,MouseFeatureTypes,MouseEventArgsGestIT>(events,s)
-                he.run()
+                let mutable d = he.AddFilter( (fun x -> true))
+                d <- he.AddFilter( (fun x -> x.Button = MouseButtons.Left && x.Clicks>1 )) 
+                d <- he.AddFilter( (fun x -> x.Button = MouseButtons.Middle && x.Clicks>1)) 
+                d <- he.AddFilter( (fun x -> x.Button = MouseButtons.Right && x.Clicks>1))
+               
+                he.Run()
 
 
                 this.MaximizeBox <- true
