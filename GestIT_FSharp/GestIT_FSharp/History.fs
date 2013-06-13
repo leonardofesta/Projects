@@ -25,7 +25,6 @@ type FilteredHistory<'U> when 'U :> EventArgs and 'U :> HEvent (myid:HID, hs:flo
  
     member x.AddItem (arg:'U) =
         eventlist.Add(arg)
-        x.CleanCache()
 
     member x.Filter (arg:'U) =
         if (predicatefilter(arg)) then
@@ -42,7 +41,7 @@ type FilteredHistory<'U> when 'U :> EventArgs and 'U :> HEvent (myid:HID, hs:flo
 type HistoryContainer<'U> when 'U :> HEvent and 'U :> EventArgs ()  = 
     
     let mutable lastsessionid = 0
-    let mutable defaultsize = 60000.0 // in milliseconds
+    let mutable defaultsize = 10000.0 // in milliseconds
     let filters = new Dictionary<HID,FilteredHistory<'U>>()
 
     member private this.NextSessionID : int =
@@ -70,6 +69,7 @@ type HistoryContainer<'U> when 'U :> HEvent and 'U :> EventArgs ()  =
     member this.AddEvt(event:'U):unit =
           filters.Values |> Seq.iter ( fun x -> 
                                                 if (x.Recording) then x.Filter(event)
+                                                x.CleanCache()
                                      )
           this.stamparoba()    
 
