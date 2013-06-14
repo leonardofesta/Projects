@@ -9,15 +9,11 @@ type HEvent =
 type HID = int
 
 type FilteredHistoryEx<'U> = HID * bool ref * float * (DateTime*'U->bool) * List<DateTime*'U>
+type FilteredHistory<'U> (historysize:float, predicatefilter: (DateTime*'U->bool))   =
 
-type FilteredHistory<'U> (id:HID, historysize:float, predicatefilter: (DateTime*'U->bool))   =
     let mutable recording = false
     let eventlist = new List< DateTime*'U >()
  
-    member x.ID
-        with get() = id
-        //and set y = id <- y
-
     member x.Recording 
         with get() = recording
         and set y = recording <- y
@@ -36,7 +32,7 @@ type FilteredHistory<'U> (id:HID, historysize:float, predicatefilter: (DateTime*
         eventlist
 
 
-type HistoryContainer<'U> when 'U :> HEvent ()  = 
+type HistoryContainer<'U> when 'U :> HEvent ()  =
     
     let lastsessionid = ref (LanguagePrimitives.GenericZero<HID>)
     let mutable defaultsize = 10000.0 // in milliseconds
@@ -54,9 +50,10 @@ type HistoryContainer<'U> when 'U :> HEvent ()  =
                 | None -> defaultsize
                 | Some h -> h
              
-        let newid = this.NextSessionID:HID
 
-        let newfilter = new FilteredHistory<_>(newid,hs,filter)
+        let newfilter = new FilteredHistory<_>(hs,filter)
+
+        let newid = this.NextSessionID:HID
 
         filters.Add(newid,newfilter)
 
