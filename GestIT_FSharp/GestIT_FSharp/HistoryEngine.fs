@@ -17,9 +17,10 @@ type HistoryEngine<'Y,'X,'U> when 'U :> System.EventArgs and 'U :> HEvent and 'X
 
     let mutable gestITExpr = expression
     let mutable sensor = sens   
-    let historycontainer = match hc with
-                      | None -> new HistoryContainer<'U>()
-                      | Some t -> t
+    let historycontainer =
+        match hc with
+        | None -> new HistoryContainer<'U>()
+        | Some t -> t
 
     let mutable features = new List<ObservableFeature<_>>()
 
@@ -31,7 +32,7 @@ type HistoryEngine<'Y,'X,'U> when 'U :> System.EventArgs and 'U :> HEvent and 'X
         historycontainer.RecordAll(true)
         gestITExpr.ToGestureNet(sensor) |> ignore
 
-    member x.AddFilter<'U> (predicate: 'U -> bool,?hsize:float ) : HID = 
+    member x.AddFilter<'U> (predicate: System.DateTime*'U -> bool,?hsize:float ) : HID = 
         match hsize with 
             | None -> historycontainer.AddFilter(predicate)
             | Some s -> historycontainer.AddFilter(predicate,s)

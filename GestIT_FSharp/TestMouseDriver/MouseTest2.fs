@@ -96,9 +96,9 @@
                 let events =  ( ( ( leftB |-> clickleft_h ) |>> ( middleB |-> clickmiddle_h ) |>> ( rightB |-> clickright_h ) ) |-> triple_h) |^| !*(moving |-> moving_h)
                 let he = new HistoryEngine<_,MouseFeatureTypes,MouseEventArgsGestIT>(events,s)
                 let mutable d = he.AddFilter( (fun x -> true))
-                d <- he.AddFilter( (fun x -> x.Button = MouseButtons.Left && x.Clicks>1 )) 
-                d <- he.AddFilter( (fun x -> x.Button = MouseButtons.Middle && x.Clicks>1)) 
-                d <- he.AddFilter( (fun x -> x.Button = MouseButtons.Right && x.Clicks>1))
+                d <- he.AddFilter( (fun (y,x) -> x.Button = MouseButtons.Left && x.Clicks>1 ) ) 
+                d <- he.AddFilter( (fun (y,x) -> x.Button = MouseButtons.Middle && x.Clicks>1) ) 
+                d <- he.AddFilter( (fun (y,x) -> x.Button = MouseButtons.Right && x.Clicks>1) )
                
                 he.Run()
 
@@ -110,7 +110,7 @@
                 lbl.Visible <- true
                 lbl.Width <- 200
                 lbl.Height <- 40
-                this.BackColor <- Color.BlueViolet
+                this.BackColor <- Color.Blue
                 lbl.Location <- new Point(this.Location.X + this.Width / 2 - lbl.Width / 2, this.Location.Y + this.Height / 2 - lbl.Height / 2)
                 lbl.Font <- new Font("Verdana", 10.F)
                 lbl.Text <- "* Frame Superfuffa! *"

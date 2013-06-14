@@ -8,47 +8,46 @@ type HEvent =
 
 type HID = int
 
-type FilteredHistory<'U> when 'U :> EventArgs and 'U :> HEvent (myid:HID, hs:float, pf: ('U->bool))   =
-    let mutable id = myid
+type FilteredHistoryEx<'U> = HID * bool ref * float * (DateTime*'U->bool) * List<DateTime*'U>
+
+type FilteredHistory<'U> (id:HID, historysize:float, predicatefilter: (DateTime*'U->bool))   =
     let mutable recording = false
-    let historysize = hs
-    let predicatefilter =  pf
-    let eventlist = new List<'U>() 
+    let eventlist = new List< DateTime*'U >()
  
     member x.ID
         with get() = id
-        and set y = id <- y
-    
+        //and set y = id <- y
+
     member x.Recording 
         with get() = recording
         and set y = recording <- y
  
-    member x.AddItem (arg:'U) =
-        eventlist.Add(arg)
+    member x.AddItem (time:DateTime,arg:'U) =
+        eventlist.Add(time,arg)
 
-    member x.Filter (arg:'U) =
-        if (predicatefilter(arg)) then
-                x.AddItem(arg)
+    member x.Filter
+        with get() = predicatefilter
 
     member x.CleanCache() =
-        eventlist.RemoveAll( new System.Predicate<_>( (fun y -> y.getTimestamp() <= System.DateTime.Now.AddMilliseconds(-1.0*historysize)))) |>ignore
+        eventlist.RemoveAll( new System.Predicate<_>( (fun (t,_) -> t <= System.DateTime.Now.AddMilliseconds(-1.0*historysize)))) |>ignore
 
     // ho pensato meglio ritornare la lista su cui fare le query che mettere dei metodi per fare le query dirette sulla lista
     member x.GetItems() =
         eventlist
 
 
-type HistoryContainer<'U> when 'U :> HEvent and 'U :> EventArgs ()  = 
+type HistoryContainer<'U> when 'U :> HEvent ()  = 
     
-    let mutable lastsessionid = 0
+    let lastsessionid = ref (LanguagePrimitives.GenericZero<HID>)
     let mutable defaultsize = 10000.0 // in milliseconds
     let filters = new Dictionary<HID,FilteredHistory<'U>>()
 
     member private this.NextSessionID : int =
-        lastsessionid <- ( lastsessionid + 1 )
-        lastsessionid   
+            //lastsessionid := ( !lastsessionid + 1 ); ! lastsessionid   
+            let newId = System.Threading.Interlocked.Increment(lastsessionid)
+            if newId = 0 then raise (new System.Exception("Nooo! hai finito gli ID!")) else newId
 
-    member this.AddFilter(filter:'U->bool, ?hsize:float):HID =
+    member this.AddFilter(filter:DateTime*'U->bool, ?hsize:float):HID =
         
         let hs =
             match hsize with
@@ -57,7 +56,7 @@ type HistoryContainer<'U> when 'U :> HEvent and 'U :> EventArgs ()  =
              
         let newid = this.NextSessionID:HID
 
-        let newfilter = new FilteredHistory<'U>(newid,hs,filter)
+        let newfilter = new FilteredHistory<_>(newid,hs,filter)
 
         filters.Add(newid,newfilter)
 
@@ -67,14 +66,15 @@ type HistoryContainer<'U> when 'U :> HEvent and 'U :> EventArgs ()  =
         filters.Remove(id)
 
     member this.AddEvt(event:'U):unit =
-          filters.Values |> Seq.iter ( fun x -> 
-                                                if (x.Recording) then x.Filter(event)
-                                                x.CleanCache()
-                                     )
-          this.stamparoba()    
+        let e = event.getTimestamp(),event
+        for x in filters.Values do
+            if (x.Recording && x.Filter(e)) then
+                x.AddItem(event.getTimestamp(),event)
+                x.CleanCache()
+        this.stamparoba()
 
     member this.GetItems(id:HID) = 
-        filters.Item(id).GetItems()
+        filters.Item(id).GetItems() :> seq<_>
 
 
     member this.SetRecording(id:HID,b:bool) =
@@ -82,11 +82,11 @@ type HistoryContainer<'U> when 'U :> HEvent and 'U :> EventArgs ()  =
 
     member private x.stamparoba() =
   
-        let printitem(item:List<'U>) =
+        let printitem(item:List<DateTime*'U>) =
             if(item.Count>0)
                 then
-                System.Diagnostics.Debug.WriteLine(" Primo --> %s " + item.Item(0).getTimestamp().ToString())
-                System.Diagnostics.Debug.WriteLine(" Ultimo --> %s " + item.Item(item.Count-1).getTimestamp().ToString())
+                System.Diagnostics.Debug.WriteLine(" Primo --> %s " + let t,_ = item.Item(0) in t.ToString())
+                System.Diagnostics.Debug.WriteLine(" Ultimo --> %s " + let t,_ = item.Item(item.Count-1) in t.ToString())
                 System.Diagnostics.Debug.WriteLine(" Quantità --> %s " + item.Count.ToString())
 
         System.Diagnostics.Debug.WriteLine("inizio stampa")
