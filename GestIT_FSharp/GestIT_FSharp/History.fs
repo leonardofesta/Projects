@@ -70,7 +70,7 @@ type HistoryContainer<'U> when 'U :> HEvent ()  =
         for x in filters.Values do
             if (x.Recording && x.Filter(e)) then
                 x.AddItem(event.getTimestamp(),event)
-                x.CleanCache()
+            x.CleanCache()
         this.stamparoba()
 
     member this.GetItems(id:HID) = 

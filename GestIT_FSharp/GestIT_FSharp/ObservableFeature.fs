@@ -21,7 +21,6 @@ type ObservableFeature<'U>(evt:Event<_>) =
   member this.EventTrigger = featureEvent.Trigger(this)
  
 
-
   abstract member runCheck :  HistoryContainer<_> -> unit
 
 

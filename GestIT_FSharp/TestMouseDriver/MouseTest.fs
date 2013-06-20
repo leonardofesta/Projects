@@ -10,7 +10,6 @@
         
     type Delegate = delegate of string -> unit
 
-
     type TrayApplication (s:ISensor<MouseFeatureTypes,MouseEventArgsGestIT>) as this =
             inherit Form()
 
