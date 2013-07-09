@@ -1,31 +1,33 @@
 ﻿module GestIT.Data    
 
-open System.Collections
+open System.Collections.Generic
 open System
+open MathNet.Numerics.LinearAlgebra
+open MathNet.Numerics.LinearAlgebra.Double
+open MathNet.Numerics.Distributions
+
+
+
 
 type Data =
     interface
     end
 
-type Time = 
-    abstract member Time : System.DateTime
-                   with get
 
 type Accumulator<'U> when 'U :> Data = 
 
     abstract member Additem :   'U -> unit
 
 
-
-
-
 type NumericData<'U> when 'U :> Data = 
 
-    abstract member Average :   'U 
-                with get 
-    abstract member Variance :  'U
+    abstract member Sum         :   'U
                 with get
-    abstract member StDev : 'U
+    abstract member Average     :   'U 
+                with get 
+    abstract member Variance    :   'U
+                with get
+    abstract member StDev       :   'U
                 with get
 
 
@@ -51,9 +53,9 @@ type Data3d =
     abstract member D3 : float
                 with get
 
-let media (actual:float, items:int, value:float ):float =
+let media (sum:float, items:int, value:float ):float =
                 let n = float items
-                ((actual*n + value )/(n+1.0))
+                ((sum + value )/(n+1.0))
 
 let mx2 (actual: float,items:int,value:float):float = 
                 let n = float items
@@ -61,6 +63,7 @@ let mx2 (actual: float,items:int,value:float):float =
 
 type Acc1D() = 
     
+    let mutable sum = 0.0
     let mutable avg = 0.0
     let mutable items = 0
     let mutable variance = -1.0
@@ -71,15 +74,19 @@ type Acc1D() =
     interface Accumulator<Data1d> with
 
         member x.Additem( d ) =
-            avg <- media(avg,items,d.D1)
+            sum <- sum + d.D1
+            avg <- media(sum,items,d.D1)
             x2 <- mx2(x2,items,d.D1)
             items <- (items+1 )
             variance <- x2 - (avg * avg)
             stdev <- Math.Sqrt  variance
 
     interface NumericData<Data1d> with 
-    
 
+        member x.Sum 
+                with get() =  { new Data1d with 
+                                    member x.D1 = sum 
+                                    } 
         member x.Average  
                 with get () = { new Data1d with 
                                     member x.D1 =  avg } 
@@ -89,9 +96,12 @@ type Acc1D() =
         member x.StDev
                 with get () =  { new Data1d with 
                                     member x.D1 =  stdev }
-   
+        
 type Acc2D() = 
     
+    let mutable sum1 = 0.0
+    let mutable sum2 = 0.0
+
     let mutable avg1 = 0.0
     let mutable avg2 = 0.0
 
@@ -110,8 +120,10 @@ type Acc2D() =
     interface Accumulator<Data2d> with 
 
         member x.Additem( d ) =
-            avg1 <- media(avg1,items,d.D1)
-            avg2 <- media(avg2,items,d.D2)
+            sum1 <- sum1 + d.D1
+            sum2 <- sum2 + d.D2
+            avg1 <- media(sum1,items,d.D1)
+            avg2 <- media(sum2,items,d.D2)
             x2_1 <- mx2(x2_1,items,d.D1)
             x2_2 <- mx2(x2_2,items,d.D2)
             items <- (items+1)
@@ -122,6 +134,11 @@ type Acc2D() =
 
     interface NumericData<Data2d> with 
 
+        member x.Sum 
+                with get() =  { new Data2d with 
+                                    member x.D1 = sum1 
+                                    member x.D2 = sum2
+                                    } 
         member x.Average  
                 with get () = { new Data2d with 
                                     member x.D1 = avg1 
@@ -131,8 +148,7 @@ type Acc2D() =
                 with get () = { new Data2d with 
                                     member x.D1 = variance1 
                                     member x.D2 = variance2
-                                    } 
-
+                                    }
         member x.StDev
                 with get () =  { new Data2d with 
                                     member x.D1 = stdev1 
@@ -141,6 +157,10 @@ type Acc2D() =
 
 type Acc3D() = 
     
+    let mutable sum1 = 0.0
+    let mutable sum2 = 0.0
+    let mutable sum3 = 0.0
+
     let mutable avg1 = 0.0
     let mutable avg2 = 0.0
     let mutable avg3 = 0.0
@@ -164,9 +184,14 @@ type Acc3D() =
     interface Accumulator<Data3d> with 
 
         member x.Additem( d ) =
-            avg1 <- media(avg1,items,d.D1)
-            avg2 <- media(avg2,items,d.D2)
-            avg3 <- media(avg3,items,d.D3)
+
+            sum1 <- sum1 + d.D1
+            sum2 <- sum2 + d.D2
+            sum3 <- sum3 + d.D3
+
+            avg1 <- media(sum1,items,d.D1)
+            avg2 <- media(sum2,items,d.D2)
+            avg3 <- media(sum3,items,d.D3)
 
             x2_1 <- mx2(x2_1,items,d.D1)
             x2_2 <- mx2(x2_2,items,d.D2)
@@ -185,6 +210,12 @@ type Acc3D() =
 
     interface NumericData<Data3d> with 
 
+        member x.Sum 
+                with get() =  { new Data3d with 
+                                    member x.D1 = sum1 
+                                    member x.D2 = sum2
+                                    member x.D3 = sum3
+                                    } 
         member x.Average  
                 with get () = { new Data3d with 
                                     member x.D1 = avg1 
@@ -197,7 +228,6 @@ type Acc3D() =
                                     member x.D2 = variance2
                                     member x.D3 = variance3
                                     } 
-
         member x.StDev
                 with get () =  { new Data3d with 
                                     member x.D1 = stdev1 
@@ -205,5 +235,4 @@ type Acc3D() =
                                     member x.D3 = stdev3
                                     } 
 
-
-
+// Prende una lista di TData e taglia tutto ciò che è più vecchio di un certo timestamp
