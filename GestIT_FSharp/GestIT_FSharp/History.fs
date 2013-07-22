@@ -82,9 +82,9 @@ type HistoryContainer<'U> when 'U :> HEvent ()  =
         let printitem(item:List<DateTime*'U>) =
             if(item.Count>0)
                 then
-                System.Diagnostics.Debug.WriteLine(" Primo --> %s " + let t,_ = item.Item(0) in t.ToString())
-                System.Diagnostics.Debug.WriteLine(" Ultimo --> %s " + let t,_ = item.Item(item.Count-1) in t.ToString())
-                System.Diagnostics.Debug.WriteLine(" Quantità --> %s " + item.Count.ToString())
+                System.Console.WriteLine(" Primo --> " + let t,_ = item.Item(0) in t.ToString())
+                System.Console.WriteLine(" Ultimo --> " + let t,_ = item.Item(item.Count-1) in t.ToString())
+                System.Console.WriteLine(" Quantità --> " + item.Count.ToString())
 
         System.Diagnostics.Debug.WriteLine("inizio stampa")
         filters.Values |> Seq.iter (fun y -> printitem(y.GetItems()))

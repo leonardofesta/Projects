@@ -6,6 +6,9 @@ open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open MathNet.Numerics.LinearAlgebra.Double
 open MathNet.Numerics.Distributions
+open MathNet.Numerics.IntegralTransforms
+open MathNet.Numerics.IntegralTransforms.Algorithms
+
 
 type TData = 
     inherit Data
@@ -33,13 +36,19 @@ type TData3D =
     abstract member D3 : float
                 with get
 
-// taglia la lista dopo un tot di millisecondi
-let listcut (lista : List<'U> when 'U :> TData, timespan : int) =
-        let length  = float (-1*timespan)
-        let last = lista.Item(lista.Count - 1)
-        Seq.toList ( Seq.filter (fun t -> ( (t:'U).Time > last.Time.AddMilliseconds(length)  )) lista)
+/// <summary>
+/// Taglia una lista di TData dato un certo timespan (in millisecondi) a partire dall'ultimo
+/// </summary>
+/// <param name="lista">La lista di TData</param>
+/// <param name="timespan">Il timespan, unità espressa in millisecondi e positiva  </param>
+/// <returns>La lista tagliata</returns>
+let listcut (lista : List<'U> when 'U :> TData, timespan : float) =
+        let length  = -1.0*timespan
+        Seq.toList ( Seq.filter (fun t -> ( (t:'U).Time > System.DateTime.Now.AddMilliseconds(length)  )) lista)
 
-// quadrato
+/// <summary>
+/// Fa il quadrato dell'intero
+/// </summary>
 let sqr(x:float):float = x*x    
 
 type Direction1D =
@@ -47,26 +56,33 @@ type Direction1D =
         |  Negative = -1
         |  Casual = 0
 
-type Tolerance = 
-        |   None = 10
-        |   Light =  9
-        |   Medium = 8
-        |   Heavy  = 5
 
-        
-// verifica che il valore "point" sia vicino rispetto ad un centro "center", con una tolleranza "tol"
-let StaticPoint (point:float, center:float, tol:float ) =
+/// <summary>
+/// Verifica che il valore "point" sia vicino rispetto ad un centro "center", con una tolleranza "tol"
+/// </summary>        
+/// <param name="point">punto che viene controllato</param>
+/// <param name="center">punto considerato come centro</param>
+/// <param name="tol">tolleranza dal punto iniziale di controllo, un valore assoluto</param>
+/// <returns>vero o falso</returns>
+let StaticPoint (point:float, center:float, tol:float ):bool =
    
     if (point <= (center+tol) && point>= (center-tol)) 
-    then true
-    else false
+        then true
+        else false
 
-// calcola i secondi di differenza tra il 1° e il 2° dato, restituendoli in secondi come float
+///<summary>
+///Calcola i secondi di differenza tra il 1° e il 2° dato(che ci si aspetta più vecchio) e ritorna i secondi totali di differenza, come float
+///</summary>
+///<returns>I secondi totali di differenza, come float</returns>
 let timespanseconds(actual:DateTime, start:DateTime):float = 
         actual.Subtract(start).TotalSeconds
 
-// Fa la Regressione Lineare Semplice con il metodo QR usando 2 array di elementi una Dimensione dipendente e una indipendente 
-// e ritorna una coppia che rappresenta l'equazione della retta  Y = a1 * X + a0 
+///<summary>
+/// Fa la Regressione Lineare Semplice con il metodo QR usando 2 array di elementi una Dimensione dipendente e una indipendente <br/>
+/// 
+/// Ritorna una coppia che rappresenta l'equazione della retta  Y = a1 * X + a0 
+///</summary>
+///<returns>una coppia che rappresenta Y = a1 * X + a0 </returns>
 let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) = 
         // Simple Least Squares Linear Regression, con pezzi tratti da:
         // http://christoph.ruegg.name/blog/2012/9/9/linear-regression-mathnet-numerics.html
@@ -88,75 +104,152 @@ let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) =
 
 
 
-type Buffered1D () =
-    
-    let itemlist = new  List<TData1D>()
+type Buffered1D (?item:List<TData1D>) =
 
+    let itemlist = match item with
+                            | None -> new List<TData1D>()
+                            | Some h -> h
+    
     member this.Count () = itemlist.Count    
 
-    member this.Clear () = 
-            itemlist.RemoveAll(fun x -> true)
+    member this.Clear () = itemlist.RemoveAll(fun x -> true)
+    
+    member this.GetArrayBuffer() = Seq.toArray(itemlist)
+
+    member this.GetListBuffer() = Seq.toList(itemlist)
 
     member this.AddItem(d:TData1D) =
             itemlist.Add  d
             |>ignore
 
+    ///<summary>
+    ///Restituisce un nuovo oggetto con il buffer tagliato a tot millisecondi
+    ///</summary>
+    ///<param name="millisec"> la porzione di tempo da tenere a partire dall'istante attuale, in millisecondi </param>
+    ///<returns>un oggetto Buffereed1D</returns>    
+    member this.cutBuffer(millisec:float):Buffered1D = 
+            let newlist = listcut(itemlist,millisec)
+            new Buffered1D(new List<TData1D> ( newlist))
+    
+    ///<summary>
+    ///Calcola la velocità istantanea degli ultimi 2 elementi
+    ///</summary>
+    ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
-            
+
             if (itemlist.Count >2) 
                 then
                     let last = itemlist.Item(itemlist.Count - 1)
                     let sndlast = itemlist.Item(itemlist.Count - 2) 
-                
                     let velocity = (last.D1 - sndlast.D1)/ ( float (last.Time- sndlast.Time).Seconds)
                     velocity   
                 else
                     0.0 // TODO : Decidere cosa fare x quando non ho dettagli
 
-    member this.Direction ( timespan : int, ?tolleranza:Tolerance) = 
+    
+            
+    // forse inutile
+    ///<summary>
+    ///Da la direzione positiva o negativa se la lista di eventi a partire da un determinato timespan è consistente verso una direzione, 
+    ///altrimenti restituisce direzione casuale
+    ///</summary>
+    ///<param name="timespan">rappresenta la dimensione di tempo per cui controllare (millisecondi) </param>
+    ///<param name="tolleranza">tolleranza nelle possibilità di insuccesso, float 0<x<1 in caso di assenza non si prevede tolleranza</param>
+    ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
+    member this.Direction ( timespan : float, ?tolleranza:float) = 
             let last = itemlist.Item(itemlist.Count - 1)
             let newlist = listcut (itemlist,timespan)
-            
+
             let positivelist = List.filter(fun x -> (x:TData1D).D1<= last.D1 ) newlist
             let negativelist = List.filter(fun x -> (x:TData1D).D1>= last.D1 ) newlist
-            let mutable toll = 10
-            
-            match tolleranza with 
-                | None -> toll<- 10
-                | Some s -> toll <- int s
+            let mutable toll = 1.0
 
-            if (positivelist.Length > (toll*newlist.Length/10))
+            match tolleranza with 
+                | None -> toll<- 1.0
+                | Some s -> toll <- s
+
+            if ( float( positivelist.Length ) > (toll * (float (newlist.Length))))
                 then Direction1D.Positive
-                elif (positivelist.Length > (toll*newlist.Length/10))
+                elif ( float (negativelist.Length) > (toll* float( newlist.Length)))
                 then Direction1D.Negative
                 else Direction1D.Casual
-                        
-            
-    member this.StationaryPosition(timespan : int, tolleranza:float) = 
+
+    ///<summary>
+    ///Controlla se il punto è stazionario rispetto ad una certa differenza
+    ///</summary>
+    ///<param name="timespan">rappresenta la dimensione di tempo per cui controllare (millisecondi) </param>
+    ///<param name="tolleranza">range di quanto può variare il valore dal punto centrale</param>
+    ///<returns>vero o falso</returns>    
+    member this.StationaryPosition(timespan : float, tolleranza:float) = 
             let center = itemlist.Item(itemlist.Count-1).D1
             let newlist = listcut(itemlist,timespan)
-
             let result = List.forall(fun x -> StaticPoint((x:TData1D).D1,center,tolleranza  )) newlist
 
             result
 
-
-    // fa il fitting alla retta, con la regressione lineare usando il metodo QR e restituisce 2 float
-    // L'equazione è Y = r1*X  + r0
     
+    ///<summary>
+    /// fa il fitting alla retta, con la regressione lineare usando il metodo QR e restituisce 2 float
+    /// L'equazione è Y = r1*X  + r0
+    ///</summary>
+    ///<return>float x float</returns>
     member this.FittingToLine():float*float =
          
         let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData1D).D1) itemlist)
         let firsttime = itemlist.Item(0).Time
         let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData1D).Time , firsttime)) itemlist)
+       
+        linearRegression(ArrayX,arrayTime)
+(*
+        //si potrebbe fare con array di 1 così tutti i metodi tornano indietro l'array   
+        let dim1x,dim2x  = linearRegression(ArrayX,arrayTime)    //  Y = dim2x * X + dim1x
+        ([|dim1x|],[| dim2x|])
+*)
+
+    ///<summary>
+    /// fa il fitting alla retta a partire da un certo timespan, con la regressione lineare usando il metodo QR e restituisce 2 float
+    /// L'equazione è Y = r1*X  + r0
+    ///</summary>
+    ///<return>float x float</returns>
+    member this.FittingToLine(timespan : float):float*float = 
+        let listacorta = listcut (itemlist, timespan)
+        
+        let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData1D).D1) listacorta)
+        let firsttime = listacorta.Item(0).Time
+        let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData1D).Time , firsttime)) listacorta)
 
         linearRegression(ArrayX,arrayTime)
+(*
+        si potrebbe fare con array di 1 così tutti i metodi tornano indietro l'array   
+        let dim1x,dim2x  = linearRegression(ArrayX,arrayTime)    //  Y = dim2x * X + dim1x
+        ([|dim1x|],[| dim2x|])
+*)  
+    
+    ///<summary>
+    ///Fa la trasformata di fourier, usa come coefficiente radice n e per l'inversa è 1/(radice n )  
+    ///</summary>
+    member this.FFT() = 
+        let d1buff = Array.map(fun x -> ( new Numerics.Complex((x:TData1D).D1,0.0 ))) (this.GetArrayBuffer())
+        Transform.FourierForward(d1buff)
+        d1buff |> Array.map(fun x -> x.Real)
 
-//        let dim1x,dim2x  = linearRegression(ArrayX,arrayTime)    //  Y = dim2x * X + dim1x
-//        ([|dim1x|],[| dim2x|])
-//        si potrebbe fare con array di 1 così tutti i metodi tornano indietro l'array   
+    ///<summary>
+    ///Fa la trasformata di fourier, applica un filtro passato, e l'inversa, restituendo un array di valori T1Data  
+    ///</summary>
+    ///<param name="filter">il filtro, una funzione da complessi a unit </param>
+    ///<return>nuovo Buffered1D con i valori filtrati</returns>
+    member this.FFFilter(filter:( Numerics.Complex -> unit) ):Buffered1D = 
+        let d1buff = Array.map (fun x -> ( new Numerics.Complex((x:TData1D).D1,0.0 ))) (this.GetArrayBuffer())
+        Transform.FourierForward(d1buff)
+        Array.iter(filter) d1buff
+        Transform.FourierInverse(d1buff)
+        let valori = Array.map2(fun x y ->  { new TData1D with 
+                                                    member this.D1 = (x:Numerics.Complex).Real
+                                                    member this.Time = (y:TData1D).Time
+                                        })  d1buff  (this.GetArrayBuffer()) 
+        Buffered1D(new List<TData1D>(valori))
+        
 
-       
 
 type Direction2D = 
         |   Casual = 0
@@ -169,85 +262,121 @@ type Direction2D =
         |   Left = 7
         |   TopLeft = 8
 
-type Buffered2D () =
-    
-    let itemlist = new  List<TData2D>()
+
+type Buffered2D (?item:List<TData2D>) =
+
+    let itemlist = match item with
+                            | None -> new List<TData2D>()
+                            | Some h -> h
 
     member this.Count () = itemlist.Count
-    
   
     member this.Clear () = 
             itemlist.RemoveAll(fun x -> true)
-
-
 
     member this.AddItem(d:TData2D) =
             itemlist.Add  d
             |>ignore
 
+
+    ///<summary>
+    ///Restituisce un nuovo oggetto con il buffer tagliato a tot millisecondi
+    ///</summary>
+    ///<param name="millisec"> la porzione di tempo da tenere a partire dall'istante attuale, in millisecondi </param>
+    ///<returns>un nuovo oggetto Buffereed2D</returns>    
+    member this.cutBuffer(millisec:float):Buffered2D = 
+            let newlist = listcut(itemlist,millisec)
+            new Buffered2D(new List<TData2D> ( newlist))
+
+    ///<summary>
+    ///Calcola la velocità istantanea degli ultimi 2 elementi
+    ///</summary>
+    ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
             
             if (itemlist.Count >2) 
                 then
                     let last = itemlist.Item(itemlist.Count - 1)
-                    let sndlast = itemlist.Item(itemlist.Count - 2) 
-                
+                    let sndlast = itemlist.Item(itemlist.Count - 2)
                     let velocity = Math.Sqrt( sqr(last.D1 - sndlast.D1) + sqr(last.D2 - sndlast.D2) )  / ( float (last.Time- sndlast.Time).Seconds)
+
                     velocity   
                 else
                     0.0 // TODO : Decidere cosa fare x quando non ho dettagli
 
-    member this.Direction ( timespan : int, ?tolleranza:Tolerance) = 
-            let last = itemlist.Item(itemlist.Count - 1)
-            let newlist = listcut (itemlist,timespan)
-            
-            let rightlist = List.filter(fun x -> (x:TData2D).D1< last.D1 ) newlist
-            let leftlist = List.filter(fun x -> (x:TData2D).D1> last.D1 ) newlist
-            let toplist = List.filter(fun x -> (x:TData2D).D2< last.D2 ) newlist
-            let bottomlist = List.filter(fun x -> (x:TData2D).D2> last.D2 ) newlist
-            
-            let mutable toll = 10
-            
-            match tolleranza with 
-                | None -> toll<- 10
-                | Some s -> toll <- int s
 
-            if (rightlist.Length > (toll*newlist.Length/10)) then
-                if (toplist.Length > (toll*newlist.Length/10)) 
+    // Sa di funzione inutile... un pò na cacata
+    ///<summary>
+    ///Da la direzione positiva o negativa se la lista di eventi a partire da un determinato timespan è consistente verso una direzione, 
+    ///altrimenti restituisce direzione casuale
+    ///</summary>
+    ///<param name="timespan">rappresenta la dimensione di tempo per cui controllare (millisecondi) </param>
+    ///<param name="tolleranza">tolleranza nelle possibilità di insuccesso, in caso di assenza non si prevede tolleranza</param>
+    ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
+    member this.Direction ( timespan : float, ?tolleranza:float) = 
+            let last       = itemlist.Item(itemlist.Count - 1)
+            let newlist    = listcut (itemlist,timespan)
+            
+            let rightlist  = List.filter(fun x -> (x:TData2D).D1< last.D1 ) newlist
+            let leftlist   = List.filter(fun x -> (x:TData2D).D1> last.D1 ) newlist
+            let toplist    = List.filter(fun x -> (x:TData2D).D2< last.D2 ) newlist
+            let bottomlist = List.filter(fun x -> (x:TData2D).D2> last.D2 ) newlist
+     
+            let mutable toll = 1.0
+    
+            match tolleranza with 
+                | None -> toll<- 1.0
+                | Some s -> toll <- s
+
+            let minlength = toll * float newlist.Length 
+
+            if ( (float rightlist.Length) > minlength) then
+                
+                    if ((float toplist.Length) > minlength) 
                         then Direction2D.TopRight
-                    elif (bottomlist.Length > (toll*newlist.Length/10)) 
+                    elif ( (float bottomlist.Length) > minlength) 
                         then Direction2D.BottomRight
                     else 
                         Direction2D.Right
-            elif (leftlist.Length > (toll*newlist.Length/10)) then
-                        if (toplist.Length > (toll*newlist.Length/10)) 
+            elif ( (float leftlist.Length) > minlength) then
+                        
+                        if ( (float toplist.Length) > minlength) 
                             then Direction2D.TopLeft
-                        elif (bottomlist.Length > (toll*newlist.Length/10)) 
+                        elif (( float bottomlist.Length) > minlength) 
                             then Direction2D.BottomLeft
                         else Direction2D.Left
-            elif (toplist.Length > (toll*newlist.Length/10)) then Direction2D.Top
-            elif (bottomlist.Length > (toll*newlist.Length/10)) then Direction2D.Bottom
-            else Direction2D.Casual            
             
+            elif ( (float toplist.Length) > minlength) then Direction2D.Top
+            elif ( (float bottomlist.Length) > minlength) then Direction2D.Bottom
+            else Direction2D.Casual            
 
-    member this.StationaryPosition(timespan : int, tolleranza:float) = 
+    ///<summary>
+    ///Controlla se il punto è stazionario rispetto ad una certa differenza
+    ///</summary>
+    ///<param name="timespan">rappresenta la dimensione di tempo per cui controllare (millisecondi) </param>
+    ///<param name="tolleranza">range di quanto può variare il valore dal punto centrale (in quantità assoluta)</param>
+    ///<returns>vero o falso</returns>    
+    member this.StationaryPosition(timespan : float, tolleranza:float) = 
             let center = itemlist.Item(itemlist.Count-1)
             let newlist = listcut(itemlist,timespan)
 
             let result = Seq.forall(fun x -> (StaticPoint((x:TData2D).D1,center.D1,tolleranza)  &&
-                                                     StaticPoint((x:TData2D).D2,center.D2,tolleranza) 
+                                              StaticPoint((x:TData2D).D2,center.D2,tolleranza) 
                                                     )) newlist
 
             result
 
-// Fa la Regressione Lineare Semplice con il metodo QR usando 2 array di elementi una Dimensione dipendente e una indipendente 
-// e ritorna una coppia che rappresenta l'equazione della retta  Y = a1 * X + a0 
+    ///<summary>
+    /// fa il fitting alla retta, con la regressione lineare usando il metodo QR e restituisce 2 float
+    /// L'equazione è Y = r1*X  + r0
+    ///</summary>
+    ///<return>float[] della costante * float[] per il coefficiente della X</returns>
     member this.FittingToLine():float[]*float[] =
 
             let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData2D).D1) itemlist)
             let ArrayY = Seq.toArray ( Seq.map(fun x -> (x:TData2D).D2) itemlist)
             let firsttime = itemlist.Item(0).Time
-            let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData1D).Time , firsttime)) itemlist)
+            let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData2D).Time , firsttime)) itemlist)
 
             let dim1x,dim2x  = linearRegression(ArrayX,arrayTime)    //  Y = dim2x * X + dim1x
             let dim1y,dim2y  = linearRegression(ArrayY,arrayTime)    //  Y = dim2x * X + dim1x
@@ -256,33 +385,54 @@ type Buffered2D () =
        
 
 
-type Buffered3D () =
-    
-    let itemlist = new  List<TData3D>()
+type Buffered3D (?item:List<TData3D>) =
+
+    let itemlist = match item with
+                            | None -> new List<TData3D>()
+                            | Some h -> h
 
     member this.Count () = itemlist.Count
     
     member this.Clear () = 
             itemlist.RemoveAll(fun x -> true)
 
-
     member this.AddItem(d:TData3D) =
             itemlist.Add  d
             |>ignore
 
+    ///<summary>
+    ///Restituisce un nuovo oggetto con il buffer tagliato a tot millisecondi
+    ///</summary>
+    ///<param name="millisec"> la porzione di tempo da tenere a partire dall'istante attuale, in millisecondi </param>
+    ///<returns>un nuovo oggetto Buffereed2D</returns>    
+    member this.cutBuffer(millisec:float):Buffered3D = 
+            let newlist = listcut(itemlist,millisec)
+            new Buffered3D(new List<TData3D> ( newlist))
+
+
+    ///<summary>
+    ///Calcola la velocità istantanea degli ultimi 2 elementi
+    ///</summary>
+    ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
             
             if (itemlist.Count >2) 
                 then
                 let last = itemlist.Item(itemlist.Count - 1)
                 let sndlast = itemlist.Item(itemlist.Count - 2) 
-                
                 let velocity = Math.Sqrt( sqr(last.D1 - sndlast.D1) + sqr(last.D2 - sndlast.D2) + sqr(last.D3 - sndlast.D3) )  / ( float (last.Time- sndlast.Time).Seconds)
+
                 velocity   
             else
                 0.0 // TODO : Decidere cosa fare x quando non ho dettagli
-   
-    member this.StationaryPosition(timespan : int, tolleranza:float) = 
+
+    ///<summary>
+    ///Controlla se il punto è stazionario rispetto ad una certa differenza
+    ///</summary>
+    ///<param name="timespan">rappresenta la dimensione di tempo per cui controllare (millisecondi) </param>
+    ///<param name="tolleranza">range di quanto può variare il valore dal punto centrale</param>
+    ///<returns>vero o falso</returns>       
+    member this.StationaryPosition(timespan : float, tolleranza:float) = 
             let center = itemlist.Item(itemlist.Count-1)
             let newlist = listcut(itemlist,timespan)
 
@@ -293,8 +443,11 @@ type Buffered3D () =
 
             centeredlist
 
-// Fa la Regressione Lineare Semplice con il metodo QR usando 2 array di elementi una Dimensione dipendente e una indipendente 
-// e ritorna una coppia che rappresenta l'equazione della retta  Y = a1 * X + a0 
+    ///<summary>
+    /// fa il fitting alla retta, con la regressione lineare usando il metodo QR e restituisce 2 float
+    /// L'equazione è Y = r1*X  + r0
+    ///</summary>
+    ///<return>float[] della costante * float[] per il coefficiente della X</returns>
     member this.FittingToLine():float[]*float[] =
 
             let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData3D).D1) itemlist)

@@ -18,7 +18,7 @@ type Accumulator<'U> when 'U :> Data =
 
     abstract member Additem :   'U -> unit
 
-
+//capire se vale la pena avere questa interfaccia
 type NumericData<'U> when 'U :> Data = 
 
     abstract member Sum         :   'U
@@ -53,13 +53,17 @@ type Data3d =
     abstract member D3 : float
                 with get
 
+// media di x
 let media (sum:float, items:int, value:float ):float =
                 let n = float items
                 ((sum + value )/(n+1.0))
 
+// media degli x^2
 let mx2 (actual: float,items:int,value:float):float = 
                 let n = float items
                 ((actual*n + value*value)/(n+1.0))
+
+
 
 type Acc1D() = 
     
