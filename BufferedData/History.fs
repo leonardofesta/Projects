@@ -1,7 +1,9 @@
 ﻿module GestIT.History
+
 open GestIT
 open System.Collections.Generic
 open System
+open GestIT.Data
 
 type HEvent = 
     abstract member getTimestamp : unit -> System.DateTime
@@ -9,6 +11,8 @@ type HEvent =
 type HID = int
 
 type FilteredHistoryEx<'U> = HID * bool ref * float * (DateTime*'U->bool) * List<DateTime*'U>
+
+
 type FilteredHistory<'U> (historysize:float, predicatefilter: (DateTime*'U->bool))   =
 
     let mutable recording = false
@@ -30,7 +34,6 @@ type FilteredHistory<'U> (historysize:float, predicatefilter: (DateTime*'U->bool
     // ho pensato meglio ritornare la lista su cui fare le query che mettere dei metodi per fare le query dirette sulla lista
     member x.GetItems() =
         eventlist
-
 
 type HistoryContainer<'U> when 'U :> HEvent ()  =
     
@@ -92,3 +95,14 @@ type HistoryContainer<'U> when 'U :> HEvent ()  =
     //TODO : metodo per fare le prove, da togliere successivamente
     member this.RecordAll(b:bool) = 
             filters.Keys |> Seq.iter (fun x -> this.SetRecording(x,b))
+
+
+type HC () = 
+
+        let lastsessionid = ref (LanguagePrimitives.GenericZero<HID>)
+
+
+        member private this.NextSessionID : int =
+            //lastsessionid := ( !lastsessionid + 1 ); ! lastsessionid   
+            let newId = System.Threading.Interlocked.Increment(lastsessionid)
+            if newId = 0 then raise (new System.Exception("Nooo! hai finito gli ID!")) else newId

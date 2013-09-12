@@ -103,13 +103,55 @@ let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) =
             (0.0,0.0)
 
 
+    
+type BufferedData () =
+    class 
+    inherit System.EventArgs()
+    end
 
-type Buffered1D (?item:List<TData1D>) =
+
+// The f function will raise the T event if needed
+type TEvent<'X>(triggerfun : 'T -> bool when 'T :> BufferedData, ?active: bool, ?name:string) =
+    inherit Event<'X>()
+
+    // da vedere se mettere a false
+    let mutable activity = match active with 
+                                    | None -> true
+                                    | Some  h -> h
+
+    let nome = match name with 
+                        | None -> ""
+                        | Some x -> x
+    
+    let mutable counter = 0
+    // restituisce la funzione che attiva il trigger 
+    member this.CheckFun(value:'T when 'T:>Buffered1D ):bool=   //( l:List<'T> when 'T :> BufferedData) =
+    (*
+        System.Diagnostics.Debug.WriteLine(nome + counter.ToString())
+        if (triggerfun value) then 
+            counter <- counter + 1
+            System.Diagnostics.Debug.WriteLine("buffer ->" )
+            System.Diagnostics.Debug.WriteLine ( (triggerfun value).ToString())
+     *)  
+        triggerfun value
+    
+    member this.IsActive():bool = 
+        activity
+
+
+// inserire type reciproci
+
+and Buffered1D (?item:List<TData1D>) =
+    inherit BufferedData()
 
     let itemlist = match item with
                             | None -> new List<TData1D>()
                             | Some h -> h
     
+//    let eventlist = new List<TEvent<_>>()
+
+//    member this.Clone () = new Buffered1D(new List<_>(Seq.toList(itemlist)))
+
     member this.Count () = itemlist.Count    
 
     member this.Clear () = itemlist.RemoveAll(fun x -> true)
@@ -118,9 +160,22 @@ type Buffered1D (?item:List<TData1D>) =
 
     member this.GetListBuffer() = Seq.toList(itemlist)
 
-    member this.AddItem(d:TData1D) =
-            itemlist.Add  d
+ (*   member this.AddEvent(t:'T when 'T:>TEvent<_>) =
+            eventlist.Add t
             |>ignore
+   *) 
+    member this.AddItem(d:TData1D) = 
+        itemlist.Add (d)
+
+ //           itemlist.Add ( d:TData1D)
+    (*        eventlist
+            |>Seq.filter( fun x -> x.IsActive())
+            |>Seq.filter( fun x -> x.CheckFun(this) ) 
+            |>Seq.iter( fun x -> 
+                                x.Trigger(this))
+
+
+    *)
 
     ///<summary>
     ///Restituisce un nuovo oggetto con il buffer tagliato a tot millisecondi
@@ -136,12 +191,27 @@ type Buffered1D (?item:List<TData1D>) =
     ///</summary>
     ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
+            let now = System.DateTime.Now
+            let datacp  = Seq.filter(fun x -> (x:TData1D).Time < now) itemlist
+            let datacp2 = Seq.filter(fun x -> (x:TData1D).Time < now.AddMilliseconds(-100.0)) itemlist
+            Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+            Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
+            Console.WriteLine("lunghezza datacp2 -> " + (Seq.length datacp2).ToString())
 
-            if (itemlist.Count >2) 
+            if ((Seq.toList itemlist).Length>2)
+                then 
+                Console.WriteLine("--------- ----------- ------------ -------------")
+                Console.WriteLine("Primo  della lista --> " + (Seq.toList itemlist).Head.Time.ToString())
+                Console.WriteLine("Ultimo della lista --> " + itemlist.Item((Seq.length itemlist)-1).Time.ToString())
+
+            if (Seq.length datacp2 >2)
                 then
-                    let last = itemlist.Item(itemlist.Count - 1)
-                    let sndlast = itemlist.Item(itemlist.Count - 2) 
-                    let velocity = (last.D1 - sndlast.D1)/ ( float (last.Time- sndlast.Time).Seconds)
+                    let last    = Seq.last datacp
+                    let sndlast = Seq.last datacp2
+                   // let sndlast = (List.tail (List.rev (Seq.toList datacp2))).Head
+                    Console.WriteLine("timestamp di last --> " + last.Time.ToString())
+                    Console.WriteLine("timestamp di sndlast --> " + last.Time.ToString())
+                    let velocity = (Math.Abs(last.D1 - sndlast.D1)/ (last.Time- sndlast.Time).TotalMilliseconds)*1000.0
                     velocity   
                 else
                     0.0 // TODO : Decidere cosa fare x quando non ho dettagli
@@ -248,8 +318,10 @@ type Buffered1D (?item:List<TData1D>) =
                                                     member this.Time = (y:TData1D).Time
                                         })  d1buff  (this.GetArrayBuffer()) 
         Buffered1D(new List<TData1D>(valori))
+  
+  
+  
         
-
 
 type Direction2D = 
         |   Casual = 0
@@ -363,7 +435,6 @@ type Buffered2D (?item:List<TData2D>) =
             let result = Seq.forall(fun x -> (StaticPoint((x:TData2D).D1,center.D1,tolleranza)  &&
                                               StaticPoint((x:TData2D).D2,center.D2,tolleranza) 
                                                     )) newlist
-
             result
 
     ///<summary>
@@ -462,3 +533,18 @@ type Buffered3D (?item:List<TData3D>) =
             let dim1z,dim2z  = linearRegression(ArrayZ,arrayTime)    //  Y = dim2x * X + dim1x
 
             ([|dim1x ; dim1y ; dim1z|],[| dim2x ; dim2y ; dim2z |])
+
+
+
+type Wrappone(data:Buffered1D) =    //'Y   when 'Y:BufferedData) =
+    
+    let eventlist = new List<TEvent<_>>()
+    
+    member this.addEvent(t:TEvent<_>) = eventlist.Add(t)
+
+    member this.AddItem(d:'T when 'T :> TData) =
+        data.AddItem(d)  
+    
+        eventlist
+            |>Seq.filter( fun x -> (x.IsActive() && x.CheckFun(data)))
+            |>Seq.iter(fun x ->x.Trigger(data))
