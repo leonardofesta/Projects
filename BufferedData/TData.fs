@@ -56,6 +56,17 @@ type Direction1D =
         |  Negative = -1
         |  Casual = 0
 
+type Direction2D = 
+        |   Casual = 0
+        |   Top = 1
+        |   TopRight = 2 
+        |   Right = 3
+        |   BottomRight  = 4 
+        |   Bottom = 5
+        |   BottomLeft = 6
+        |   Left = 7
+        |   TopLeft = 8
+
 
 /// <summary>
 /// Verifica che il valore "point" sia vicino rispetto ad un centro "center", con una tolleranza "tol"
@@ -187,37 +198,38 @@ and Buffered1D (?item:List<TData1D>) =
             new Buffered1D(new List<TData1D> ( newlist))
     
     ///<summary>
-    ///Calcola la velocità istantanea degli ultimi 2 elementi
+    ///Calcola la velocità istantanea degli ultimi eventi negli ultimi 100ms
     ///</summary>
     ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
-            let now = System.DateTime.Now
-            let datacp  = Seq.filter(fun x -> (x:TData1D).Time < now) itemlist
-            let datacp2 = Seq.filter(fun x -> (x:TData1D).Time < now.AddMilliseconds(-100.0)) itemlist
+            let now = System.DateTime.Now.AddMilliseconds(-100.0) // decido di tagliare lasciandomi solo 100 ms di risultati
+            let mutable datacp = Seq.filter(fun x -> (x:TData1D).Time > now) itemlist
+                                 |>Seq.toList
             Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
             Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
-            Console.WriteLine("lunghezza datacp2 -> " + (Seq.length datacp2).ToString())
-
-            if ((Seq.toList itemlist).Length>2)
-                then 
-                Console.WriteLine("--------- ----------- ------------ -------------")
-                Console.WriteLine("Primo  della lista --> " + (Seq.toList itemlist).Head.Time.ToString())
-                Console.WriteLine("Ultimo della lista --> " + itemlist.Item((Seq.length itemlist)-1).Time.ToString())
-
-            if (Seq.length datacp2 >2)
+            
+            if (Seq.length datacp >2)
                 then
-                    let last    = Seq.last datacp
-                    let sndlast = Seq.last datacp2
-                   // let sndlast = (List.tail (List.rev (Seq.toList datacp2))).Head
-                    Console.WriteLine("timestamp di last --> " + last.Time.ToString())
-                    Console.WriteLine("timestamp di sndlast --> " + last.Time.ToString())
-                    let velocity = (Math.Abs(last.D1 - sndlast.D1)/ (last.Time- sndlast.Time).TotalMilliseconds)*1000.0
+                    let mutable current = datacp.Head.D1
+                    let startingtime = datacp.Head.Time
+                    let lasttime = (datacp.Item(datacp.Length - 1)).Time
+                    let mutable distance = 0.0
+                    datacp <- datacp.Tail
+                    while(not(datacp.IsEmpty))
+                        do
+                        distance <- Math.Abs(current - datacp.Head.D1) + distance
+                        current <- datacp.Head.D1
+                        datacp <- datacp.Tail
+
+                    let velocity = (distance / (lasttime - startingtime).TotalMilliseconds)*1000.0
                     velocity   
                 else
                     0.0 // TODO : Decidere cosa fare x quando non ho dettagli
 
-    
-            
+
+   
+
+
     // forse inutile
     ///<summary>
     ///Da la direzione positiva o negativa se la lista di eventi a partire da un determinato timespan è consistente verso una direzione, 
@@ -320,22 +332,7 @@ and Buffered1D (?item:List<TData1D>) =
         Buffered1D(new List<TData1D>(valori))
   
   
-  
-        
-
-type Direction2D = 
-        |   Casual = 0
-        |   Top = 1
-        |   TopRight = 2 
-        |   Right = 3
-        |   BottomRight  = 4 
-        |   Bottom = 5
-        |   BottomLeft = 6
-        |   Left = 7
-        |   TopLeft = 8
-
-
-type Buffered2D (?item:List<TData2D>) =
+and Buffered2D (?item:List<TData2D>) =
 
     let itemlist = match item with
                             | None -> new List<TData2D>()
@@ -361,21 +358,33 @@ type Buffered2D (?item:List<TData2D>) =
             new Buffered2D(new List<TData2D> ( newlist))
 
     ///<summary>
-    ///Calcola la velocità istantanea degli ultimi 2 elementi
+    ///Calcola la velocità istantanea degli ultimi eventi negli ultimi 100ms 
     ///</summary>
     ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
+            let now = System.DateTime.Now.AddMilliseconds(-100.0) // decido di tagliare lasciandomi solo 100 ms di risultati
+            let mutable datacp = Seq.filter(fun x -> (x:TData2D).Time > now) itemlist
+                                 |>Seq.toList
+            Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+            Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
             
-            if (itemlist.Count >2) 
+            if (Seq.length datacp >2)
                 then
-                    let last = itemlist.Item(itemlist.Count - 1)
-                    let sndlast = itemlist.Item(itemlist.Count - 2)
-                    let velocity = Math.Sqrt( sqr(last.D1 - sndlast.D1) + sqr(last.D2 - sndlast.D2) )  / ( float (last.Time- sndlast.Time).Seconds)
+                    let mutable current = datacp.Head
+                    let startingtime = current.Time
+                    let lasttime = (datacp.Item(datacp.Length - 1)).Time
+                    let mutable distance = 0.0
+                    datacp <- datacp.Tail
+                    while(not(datacp.IsEmpty))
+                        do
+                        distance <- Math.Sqrt(sqr(current.D1 - datacp.Head.D1)+sqr(current.D2 - datacp.Head.D2)) + distance
+                        current <- datacp.Head
+                        datacp <- datacp.Tail
 
+                    let velocity = (distance / (lasttime - startingtime).TotalMilliseconds)*1000.0
                     velocity   
                 else
                     0.0 // TODO : Decidere cosa fare x quando non ho dettagli
-
 
     // Sa di funzione inutile... un pò na cacata
     ///<summary>
@@ -456,7 +465,7 @@ type Buffered2D (?item:List<TData2D>) =
        
 
 
-type Buffered3D (?item:List<TData3D>) =
+and Buffered3D (?item:List<TData3D>) =
 
     let itemlist = match item with
                             | None -> new List<TData3D>()
@@ -482,20 +491,34 @@ type Buffered3D (?item:List<TData3D>) =
 
 
     ///<summary>
-    ///Calcola la velocità istantanea degli ultimi 2 elementi
+    ///Calcola la velocità istantanea degli ultimi eventi negli ultimi 100ms
     ///</summary>
     ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
+            let now = System.DateTime.Now.AddMilliseconds(-100.0) // decido di tagliare lasciandomi solo 100 ms di risultati
+            let mutable datacp = Seq.filter(fun x -> (x:TData3D).Time > now) itemlist
+                                 |>Seq.toList
+            Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+            Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
             
-            if (itemlist.Count >2) 
+            if (Seq.length datacp >2)
                 then
-                let last = itemlist.Item(itemlist.Count - 1)
-                let sndlast = itemlist.Item(itemlist.Count - 2) 
-                let velocity = Math.Sqrt( sqr(last.D1 - sndlast.D1) + sqr(last.D2 - sndlast.D2) + sqr(last.D3 - sndlast.D3) )  / ( float (last.Time- sndlast.Time).Seconds)
+                    let mutable current = datacp.Head
+                    let startingtime = datacp.Head.Time
+                    let lasttime = (datacp.Item(datacp.Length - 1)).Time
+                    let mutable distance = 0.0
+                    datacp <- datacp.Tail
+                    while(not(datacp.IsEmpty))
+                        do
+                        distance <- Math.Sqrt(sqr(current.D1 - datacp.Head.D1) + sqr(current.D2 - datacp.Head.D2) + sqr(current.D3 - datacp.Head.D3)) + distance
+                        current <- datacp.Head
+                        datacp <- datacp.Tail
 
-                velocity   
-            else
-                0.0 // TODO : Decidere cosa fare x quando non ho dettagli
+                    let velocity = (distance / (lasttime - startingtime).TotalMilliseconds)*1000.0
+                    velocity   
+                else
+                    0.0 // TODO : Decidere cosa fare x quando non ho dettagli
+    
 
     ///<summary>
     ///Controlla se il punto è stazionario rispetto ad una certa differenza
@@ -536,13 +559,13 @@ type Buffered3D (?item:List<TData3D>) =
 
 
 
-type Wrappone(data:Buffered1D) =    //'Y   when 'Y:BufferedData) =
+type Wrappone(data:Buffered1D) = // when 'T:>BufferedData = ///(data:'T) = //   when 'Y:>BufferedData) =
     
     let eventlist = new List<TEvent<_>>()
     
     member this.addEvent(t:TEvent<_>) = eventlist.Add(t)
 
-    member this.AddItem(d:'T when 'T :> TData) =
+    member this.AddItem(d:'V when 'V :> TData) =
         data.AddItem(d)  
     
         eventlist
