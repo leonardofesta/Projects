@@ -23,6 +23,15 @@ module MouseTest2
                   member  x.D1 = float n
                   member  x.Time = data
 
+    type Td2d(n1:int,n2:int) =
+        inherit System.EventArgs()
+        
+        let data = System.DateTime.Now
+
+        interface TData2D with 
+                  member  x.D1 = float n1
+                  member  x.D2 = float n2
+                  member  x.Time = data
 
 
     // MOUSE features that have to be notified from the sensor //
@@ -178,20 +187,21 @@ module MouseTest2
            
             // Danno nuovo <---> Vedere che fare
 
-            let buff = new Buffered1D()
-            let stationaryfunction = fun b -> (b:Buffered1D).StationaryPosition(50.0,50.0)
-            let velfunction(v:float) = fun b -> System.Diagnostics.Debug.WriteLine("la velocità è :"+ (b:Buffered1D).InstantVelocity().ToString() )
-                                                (b:Buffered1D).InstantVelocity() > v 
-            let IdleEvt  = new TEvent<_>( stationaryfunction, true, "idle" )
-            let QuickEvt = new TEvent<_>( velfunction 300.0, true, "quick")
-            let SlowEvt  = new TEvent<_>( (fun b -> ((b:Buffered1D).InstantVelocity() > 100.0 && (b:Buffered1D).InstantVelocity() < 300.0 ))  , true, "slow")
+            let buff = new Buffered2D()
+            let stationaryfunction = fun b -> (b:Buffered2D).StationaryPosition(50.0,50.0)
+            let velfunction(v:float) = fun b -> System.Diagnostics.Debug.WriteLine("la velocità è :"+ (b:Buffered2D).InstantVelocity().ToString() )
+                                                (b:Buffered2D).InstantVelocity() > v 
+            let IdleEvt  = new TEvent<_,_>( stationaryfunction, true, "idle" )
+            let QuickEvt = new TEvent<_,_>( velfunction 500.0, true, "quick")
+            let SlowEvt  = new TEvent<_,_>( (fun b -> ((b:Buffered2D).InstantVelocity() > 100.0 && (b:Buffered2D).InstantVelocity() < 500.0 ))  , true, "slow")
 
-            let coso = new Wrappone(buff)
+            let coso = new Wrappone<_,_>(buff)
             coso.addEvent(IdleEvt)
             coso.addEvent(SlowEvt)
             coso.addEvent(QuickEvt)
      
-            let handlingfun:MouseEventArgs -> unit = fun t -> (coso.AddItem ( new Td1d(t.X)) 
+//            let handlingfun:MouseEventArgs -> unit = fun t -> (coso.AddItem ( new Td1d(t.X)) 
+            let handlingfun:MouseEventArgs -> unit = fun t -> (coso.AddItem ( new Td2d(t.X,t.Y)) 
                                                               )
             app.MouseMove.Add(handlingfun)
 

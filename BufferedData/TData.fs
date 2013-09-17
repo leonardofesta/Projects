@@ -114,15 +114,14 @@ let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) =
             (0.0,0.0)
 
 
-    
-type BufferedData () =
-    class 
-    inherit System.EventArgs()
-    end
+[<AbstractClass>]
+type BufferedData<'T>() =
+    inherit System.EventArgs() 
+    abstract member AddItem: 'T -> unit
 
 
 // The f function will raise the T event if needed
-type TEvent<'X>(triggerfun : 'T -> bool when 'T :> BufferedData, ?active: bool, ?name:string) =
+type TEvent<'X,'V> (triggerfun : 'V -> bool, ?active: bool, ?name:string)=
     inherit Event<'X>()
 
     // da vedere se mettere a false
@@ -136,7 +135,7 @@ type TEvent<'X>(triggerfun : 'T -> bool when 'T :> BufferedData, ?active: bool, 
     
     let mutable counter = 0
     // restituisce la funzione che attiva il trigger 
-    member this.CheckFun(value:'T when 'T:>Buffered1D ):bool=   //( l:List<'T> when 'T :> BufferedData) =
+    member this.CheckFun(value:'V):bool=   //( l:List<'T> when 'T :> BufferedData) =
     (*
         System.Diagnostics.Debug.WriteLine(nome + counter.ToString())
         if (triggerfun value) then 
@@ -152,8 +151,8 @@ type TEvent<'X>(triggerfun : 'T -> bool when 'T :> BufferedData, ?active: bool, 
 
 // inserire type reciproci
 
-and Buffered1D (?item:List<TData1D>) =
-    inherit BufferedData()
+type Buffered1D (?item:List<TData1D>) =
+    inherit BufferedData<TData1D>()
 
     let itemlist = match item with
                             | None -> new List<TData1D>()
@@ -175,7 +174,7 @@ and Buffered1D (?item:List<TData1D>) =
             eventlist.Add t
             |>ignore
    *) 
-    member this.AddItem(d:TData1D) = 
+    override this.AddItem(d:TData1D) = 
         itemlist.Add (d)
 
  //           itemlist.Add ( d:TData1D)
@@ -332,8 +331,9 @@ and Buffered1D (?item:List<TData1D>) =
         Buffered1D(new List<TData1D>(valori))
   
   
-and Buffered2D (?item:List<TData2D>) =
-
+type Buffered2D (?item:List<TData2D>) =
+    inherit BufferedData<TData2D>()
+    
     let itemlist = match item with
                             | None -> new List<TData2D>()
                             | Some h -> h
@@ -343,9 +343,8 @@ and Buffered2D (?item:List<TData2D>) =
     member this.Clear () = 
             itemlist.RemoveAll(fun x -> true)
 
-    member this.AddItem(d:TData2D) =
-            itemlist.Add  d
-            |>ignore
+    override this.AddItem(d:TData2D) = 
+        itemlist.Add (d)
 
 
     ///<summary>
@@ -465,7 +464,8 @@ and Buffered2D (?item:List<TData2D>) =
        
 
 
-and Buffered3D (?item:List<TData3D>) =
+type Buffered3D (?item:List<TData3D>) =
+    inherit BufferedData<TData3D>()
 
     let itemlist = match item with
                             | None -> new List<TData3D>()
@@ -476,9 +476,8 @@ and Buffered3D (?item:List<TData3D>) =
     member this.Clear () = 
             itemlist.RemoveAll(fun x -> true)
 
-    member this.AddItem(d:TData3D) =
-            itemlist.Add  d
-            |>ignore
+    override this.AddItem(d:TData3D) =
+            itemlist.Add  (d)
 
     ///<summary>
     ///Restituisce un nuovo oggetto con il buffer tagliato a tot millisecondi
@@ -559,13 +558,15 @@ and Buffered3D (?item:List<TData3D>) =
 
 
 
-type Wrappone(data:Buffered1D) = // when 'T:>BufferedData = ///(data:'T) = //   when 'Y:>BufferedData) =
+type Wrappone<'T,'W> when 'T :> BufferedData<'W> and 'W :> TData (data:'T)  = //   when 'Y:>BufferedData) =
+ 
+//:Buffered1D) = // when 'T:>BufferedData = ///(data:'T) = //   when 'Y:>BufferedData) =
     
-    let eventlist = new List<TEvent<_>>()
+    let eventlist = new List<TEvent<_,_>>()
     
-    member this.addEvent(t:TEvent<_>) = eventlist.Add(t)
+    member this.addEvent(t:TEvent<_,_>) = eventlist.Add(t)
 
-    member this.AddItem(d:'V when 'V :> TData) =
+    member this.AddItem(d:'W) =
         data.AddItem(d)  
     
         eventlist
