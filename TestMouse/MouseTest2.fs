@@ -228,8 +228,8 @@ module MouseTest2
 
             let evbuffer = new EventBuffer<_,_>(buff) 
             evbuffer.addEvent(IdleEvt)
-     //       evbuffer.addEvent(SlowEvt)
-     //       evbuffer.addEvent(QuickEvt)
+            evbuffer.addEvent(SlowEvt)
+            evbuffer.addEvent(QuickEvt)
             evbuffer.addEvent(Fit1)
 
             let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( new Td1d(t.X)))      
