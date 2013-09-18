@@ -37,7 +37,7 @@ type TData3D =
                 with get
 
 /// <summary>
-/// Taglia una lista di TData dato un certo timespan (in millisecondi) a partire dall'ultimo
+/// Taglia una lista di TData dato un certo timespan (in millisecondi) all'indietro
 /// </summary>
 /// <param name="lista">La lista di TData</param>
 /// <param name="timespan">Il timespan, unità espressa in millisecondi e positiva  </param>
@@ -88,6 +88,10 @@ let StaticPoint (point:float, center:float, tol:float ):bool =
 let timespanseconds(actual:DateTime, start:DateTime):float = 
         actual.Subtract(start).TotalSeconds
 
+let timespanmilliseconds(actual:DateTime, start:DateTime):float = 
+        actual.Subtract(start).TotalMilliseconds
+
+
 ///<summary>
 /// Fa la Regressione Lineare Semplice con il metodo QR usando 2 array di elementi una Dimensione dipendente e una indipendente <br/>
 /// 
@@ -133,7 +137,7 @@ type TEvent<'X,'V> (triggerfun : 'V -> bool, ?active: bool, ?name:string)=
                         | None -> ""
                         | Some x -> x
     
-    let mutable counter = 0
+    //let mutable counter = 0
     // restituisce la funzione che attiva il trigger 
     member this.CheckFun(value:'V):bool=   //( l:List<'T> when 'T :> BufferedData) =
     (*
@@ -148,8 +152,9 @@ type TEvent<'X,'V> (triggerfun : 'V -> bool, ?active: bool, ?name:string)=
     member this.IsActive():bool = 
         activity
 
+    member this.SetActive(v:bool) = 
+        activity <- v
 
-// inserire type reciproci
 
 type Buffered1D (?item:List<TData1D>) =
     inherit BufferedData<TData1D>()
@@ -158,34 +163,18 @@ type Buffered1D (?item:List<TData1D>) =
                             | None -> new List<TData1D>()
                             | Some h -> h
     
-//    let eventlist = new List<TEvent<_>>()
-
 //    member this.Clone () = new Buffered1D(new List<_>(Seq.toList(itemlist)))
 
     member this.Count () = itemlist.Count    
 
-    member this.Clear () = itemlist.RemoveAll(fun x -> true)
-    
+    member this.Clear () = itemlist.Clear()
+
     member this.GetArrayBuffer() = Seq.toArray(itemlist)
 
     member this.GetListBuffer() = Seq.toList(itemlist)
 
- (*   member this.AddEvent(t:'T when 'T:>TEvent<_>) =
-            eventlist.Add t
-            |>ignore
-   *) 
     override this.AddItem(d:TData1D) = 
         itemlist.Add (d)
-
- //           itemlist.Add ( d:TData1D)
-    (*        eventlist
-            |>Seq.filter( fun x -> x.IsActive())
-            |>Seq.filter( fun x -> x.CheckFun(this) ) 
-            |>Seq.iter( fun x -> 
-                                x.Trigger(this))
-
-
-    *)
 
     ///<summary>
     ///Restituisce un nuovo oggetto con il buffer tagliato a tot millisecondi
@@ -195,17 +184,55 @@ type Buffered1D (?item:List<TData1D>) =
     member this.cutBuffer(millisec:float):Buffered1D = 
             let newlist = listcut(itemlist,millisec)
             new Buffered1D(new List<TData1D> ( newlist))
-    
+
     ///<summary>
     ///Calcola la velocità istantanea degli ultimi eventi negli ultimi 100ms
     ///</summary>
     ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
-            let now = System.DateTime.Now.AddMilliseconds(-100.0) // decido di tagliare lasciandomi solo 100 ms di risultati
-            let mutable datacp = Seq.filter(fun x -> (x:TData1D).Time > now) itemlist
-                                 |>Seq.toList
-            Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
-            Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
+           this.AverageVelocity(100.0)
+    
+//    ///<summary>
+//    ///Calcola la velocità istantanea degli ultimi eventi negli ultimi 100ms
+//    ///</summary>
+//    ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
+//    member this.InstantVelocity() = 
+//            let now = System.DateTime.Now.AddMilliseconds(-100.0) // decido di tagliare lasciandomi solo 100 ms di risultati
+//            let mutable datacp = Seq.filter(fun x -> (x:TData1D).Time > now) itemlist
+//                                 |>Seq.toList
+// //           Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+// //           Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
+//            
+//            if (Seq.length datacp >2)
+//                then
+//                    let mutable current = datacp.Head.D1
+//                    let startingtime = datacp.Head.Time
+//                    let lasttime = (datacp.Item(datacp.Length - 1)).Time
+//                    let mutable distance = 0.0
+//                    datacp <- datacp.Tail
+//                    while(not(datacp.IsEmpty))
+//                        do
+//                        distance <- Math.Abs(current - datacp.Head.D1) + distance
+//                        current <- datacp.Head.D1
+//                        datacp <- datacp.Tail
+//
+//                    let velocity = (distance / (lasttime - startingtime).TotalMilliseconds)*1000.0
+//                    velocity   
+//                else
+//                    0.0 // TODO : Decidere cosa fare x quando non ho dettagli
+
+
+    ///<summary>
+    ///Calcola la velocità media percorsa dato un intervallo di tempo, in millisecondi
+    ///</summary>
+    ///<param name="timespan">Float che rappresenta il periodo in cui calcolare la velocità media</param>
+    ///<returns>il valore di velocità media, oppure 0 se non ci sono 2 elementi necessari</returns>
+    member this.AverageVelocity(timespan:float) = 
+            
+            let mutable datacp = listcut(itemlist, timespan)
+            
+    //        Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+    //        Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
             
             if (Seq.length datacp >2)
                 then
@@ -221,12 +248,11 @@ type Buffered1D (?item:List<TData1D>) =
                         datacp <- datacp.Tail
 
                     let velocity = (distance / (lasttime - startingtime).TotalMilliseconds)*1000.0
+                    System.Console.WriteLine (velocity.ToString())
                     velocity   
                 else
                     0.0 // TODO : Decidere cosa fare x quando non ho dettagli
 
-
-   
 
 
     // forse inutile
@@ -255,19 +281,33 @@ type Buffered1D (?item:List<TData1D>) =
                 then Direction1D.Negative
                 else Direction1D.Casual
 
+
+    ///<summary>
+    ///Calcola la posizione media del punto dato un timespan e ritorna il valore
+    ///</summary>
+    ///<param name="timespan">rappresenta la dimensione di tempo per cui controllare (millisecondi) </param>
+    ///<returns>float rappresentante la posizione media</returns>    
+    member this.AveragePosition(timespan : float):float = 
+            
+            listcut(itemlist,timespan)
+            |> List.map(fun x -> (x:TData1D).D1)
+            |> List.average 
+
+
     ///<summary>
     ///Controlla se il punto è stazionario rispetto ad una certa differenza
     ///</summary>
     ///<param name="timespan">rappresenta la dimensione di tempo per cui controllare (millisecondi) </param>
-    ///<param name="tolleranza">range di quanto può variare il valore dal punto centrale</param>
+    ///<param name="tolleranza">range di quanto può variare il valore dal punto ultimo</param>
     ///<returns>vero o falso</returns>    
     member this.StationaryPosition(timespan : float, tolleranza:float) = 
-            let center = itemlist.Item(itemlist.Count-1).D1
             let newlist = listcut(itemlist,timespan)
+            let center = this.AveragePosition(timespan)
             let result = List.forall(fun x -> StaticPoint((x:TData1D).D1,center,tolleranza  )) newlist
 
             result
 
+            
     
     ///<summary>
     /// fa il fitting alla retta, con la regressione lineare usando il metodo QR e restituisce 2 float
@@ -279,10 +319,10 @@ type Buffered1D (?item:List<TData1D>) =
         let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData1D).D1) itemlist)
         let firsttime = itemlist.Item(0).Time
         let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData1D).Time , firsttime)) itemlist)
-       
+
         linearRegression(ArrayX,arrayTime)
 (*
-        //si potrebbe fare con array di 1 così tutti i metodi tornano indietro l'array   
+        //si potrebbe fare per uniformità con array di 1 così tutti i metodi tornano indietro l'array   
         let dim1x,dim2x  = linearRegression(ArrayX,arrayTime)    //  Y = dim2x * X + dim1x
         ([|dim1x|],[| dim2x|])
 *)
@@ -301,7 +341,7 @@ type Buffered1D (?item:List<TData1D>) =
 
         linearRegression(ArrayX,arrayTime)
 (*
-        si potrebbe fare con array di 1 così tutti i metodi tornano indietro l'array   
+        si potrebbe fare per uniformità con array di 1 così tutti i metodi tornano indietro l'array   
         let dim1x,dim2x  = linearRegression(ArrayX,arrayTime)    //  Y = dim2x * X + dim1x
         ([|dim1x|],[| dim2x|])
 *)  
@@ -312,10 +352,11 @@ type Buffered1D (?item:List<TData1D>) =
     member this.FFT() = 
         let d1buff = Array.map(fun x -> ( new Numerics.Complex((x:TData1D).D1,0.0 ))) (this.GetArrayBuffer())
         Transform.FourierForward(d1buff)
-        d1buff |> Array.map(fun x -> x.Real)
+        d1buff 
+        |> Array.map(fun x -> x.Real)
 
     ///<summary>
-    ///Fa la trasformata di fourier, applica un filtro passato, e l'inversa, restituendo un array di valori T1Data  
+    ///Fa la trasformata di fourier, applica un filtro passato, e l'inversa, restituendo un nuovo buffer con i valori T1Data  
     ///</summary>
     ///<param name="filter">il filtro, una funzione da complessi a unit </param>
     ///<return>nuovo Buffered1D con i valori filtrati</returns>
@@ -341,7 +382,7 @@ type Buffered2D (?item:List<TData2D>) =
     member this.Count () = itemlist.Count
   
     member this.Clear () = 
-            itemlist.RemoveAll(fun x -> true)
+            itemlist.Clear()
 
     override this.AddItem(d:TData2D) = 
         itemlist.Add (d)
@@ -364,8 +405,8 @@ type Buffered2D (?item:List<TData2D>) =
             let now = System.DateTime.Now.AddMilliseconds(-100.0) // decido di tagliare lasciandomi solo 100 ms di risultati
             let mutable datacp = Seq.filter(fun x -> (x:TData2D).Time > now) itemlist
                                  |>Seq.toList
-            Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
-            Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
+    //        Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+    //        Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
             
             if (Seq.length datacp >2)
                 then
@@ -474,7 +515,7 @@ type Buffered3D (?item:List<TData3D>) =
     member this.Count () = itemlist.Count
     
     member this.Clear () = 
-            itemlist.RemoveAll(fun x -> true)
+            itemlist.Clear()
 
     override this.AddItem(d:TData3D) =
             itemlist.Add  (d)
@@ -557,8 +598,14 @@ type Buffered3D (?item:List<TData3D>) =
             ([|dim1x ; dim1y ; dim1z|],[| dim2x ; dim2y ; dim2z |])
 
 
-
-type Wrappone<'T,'W> when 'T :> BufferedData<'W> and 'W :> TData (data:'T)  = //   when 'Y:>BufferedData) =
+///<summary>  // da vedere come inserire i commenti in modo giusto
+///Classe contenente il buffer e a cui passare gli eventi su cui effettuare un controllo<br/>
+///I tipi: <'T,'W><br/>
+///'T uno dei sottotipi di BufferedData<br/>
+///'W il tipo di Tdata che contiene il dato da controllare con i predicati 
+///</summary>
+///<param name="data">l'oggetto buffer su cui controllare gli eventi</param>
+type EventBuffer<'T,'W> when 'T :> BufferedData<'W> and 'W :> TData (data:'T)  = //   when 'Y:>BufferedData) =
  
 //:Buffered1D) = // when 'T:>BufferedData = ///(data:'T) = //   when 'Y:>BufferedData) =
     

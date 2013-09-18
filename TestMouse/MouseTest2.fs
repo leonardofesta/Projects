@@ -10,7 +10,7 @@ module MouseTest2
     open System.Drawing
     open System.Collections.Generic
     open System.Diagnostics
-        
+       
     type Delegate = delegate of string -> unit
 
     // tipo per i T1D
@@ -47,7 +47,7 @@ module MouseTest2
         | MouseQuick = 3
         | MouseSlow = 4
         | MouseIdle = 5
-
+        | MouseDiagonal = 6
 
     type TrayApplication () as this =
             inherit Form()
@@ -123,6 +123,7 @@ module MouseTest2
             let fermo   = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseIdle,  fun x -> true)
             let veloce  = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseQuick, fun x -> true)
             let lento   = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseSlow,  fun x -> true)
+            let diagonale = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseDiagonal, fun x -> true)
 
             // ref used for movement tracking
             let a = ref 0
@@ -183,26 +184,58 @@ module MouseTest2
                 app.label.BackColor <- Color.Yellow
                 app.label.Invalidate()
 
-            
+            let diagonale_h (sender, f:MouseFeatureTypes, e:_) =
+             //   System.Diagnostics.Debug.WriteLine("Siamo lenti")
+                app.label.Invoke(deleg, "... ~~> Diagonale <~~ ...") |> ignore
+                app.label.BackColor <- Color.Yellow
+                app.label.Invalidate()
+
            
             // Danno nuovo <---> Vedere che fare
+            let buff = new Buffered1D()
 
-            let buff = new Buffered2D()
-            let stationaryfunction = fun b -> (b:Buffered2D).StationaryPosition(50.0,50.0)
+            let retta(v:float ) = fun b -> (let bb = (b:Buffered1D)
+                                            let d1,d2 = if(bb.Count()>100) then bb.FittingToLine(100.0) 
+                                                                              else 0.0,0.0
+                                            //Trovare mega errore
+                                            if (System.Math.Abs(d2 - v) < 0.1) 
+                                                                                then 
+                                                                                    System.Console.WriteLine("direzione = " + d2.ToString() )
+                                                                                    true
+                                                                                else 
+                                                                                    bb.GetListBuffer()
+                                                                                    |>List.map( fun x -> (x:TData1D).D1)
+                                                                                    |>List.iter( fun x -> System.Console.Write (x.ToString() + " "))
+                                                                                    System.Console.WriteLine "||"
+                                                                                    System.Console.WriteLine("direzione = " + d2.ToString() )
+                                                                                    if (bb.Count()>100) 
+                                                                                        then 
+                                                                                            ignore
+                                                                                        else 
+                                                                                            ignore
+
+                                                                                    false  
+                                           )
+            let avgvel(v:float) = fun b -> (b:Buffered1D).AverageVelocity(1000.0) > v //velocità media dell'ultimo secondo + alta di
+            let stationaryfunction = fun b -> (b:Buffered1D).StationaryPosition(50.0,50.0)
             let velfunction(v:float) = fun b -> System.Diagnostics.Debug.WriteLine("la velocità è :"+ (b:Buffered2D).InstantVelocity().ToString() )
                                                 (b:Buffered2D).InstantVelocity() > v 
+            
             let IdleEvt  = new TEvent<_,_>( stationaryfunction, true, "idle" )
-            let QuickEvt = new TEvent<_,_>( velfunction 500.0, true, "quick")
-            let SlowEvt  = new TEvent<_,_>( (fun b -> ((b:Buffered2D).InstantVelocity() > 100.0 && (b:Buffered2D).InstantVelocity() < 500.0 ))  , true, "slow")
+            let QuickEvt = new TEvent<_,_>( avgvel 500.0, true, "quick")
+            let SlowEvt  = new TEvent<_,_>( (fun b -> (not(avgvel(500.0) b) && avgvel(100.0) b ))  , true, "slow")
+            let Fit1 = new TEvent<_,_> (retta(1.0), true, "diagionale")
 
-            let coso = new Wrappone<_,_>(buff)
-            coso.addEvent(IdleEvt)
-            coso.addEvent(SlowEvt)
-            coso.addEvent(QuickEvt)
-     
-//            let handlingfun:MouseEventArgs -> unit = fun t -> (coso.AddItem ( new Td1d(t.X)) 
-            let handlingfun:MouseEventArgs -> unit = fun t -> (coso.AddItem ( new Td2d(t.X,t.Y)) 
-                                                              )
+            let evbuffer = new EventBuffer<_,_>(buff) 
+            evbuffer.addEvent(IdleEvt)
+     //       evbuffer.addEvent(SlowEvt)
+     //       evbuffer.addEvent(QuickEvt)
+            evbuffer.addEvent(Fit1)
+
+            let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( new Td1d(t.X)))      
+//            let handlingfun:(MouseEventArgs -> unit) = fun t -> (evbuffer.AddItem ( new Td2d(t.X,t.Y)))
+//            let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( new Td3d(t.X,t.Y,t.Clicks)))                                                     )
+            
             app.MouseMove.Add(handlingfun)
 
         //    let dddd = Event.merge IdleEvt SlowEvt 
@@ -218,21 +251,21 @@ module MouseTest2
                            Event.merge IdleEvt.Publish QuickEvt.Publish
                            |> Event.merge SlowEvt.Publish
                            |> Event.map :> app.MouseDown
-                           *)
+            *)
                                      
             // Danno nuovo <---> Vedere che fare
             sens.Listen(MouseFeatureTypes.MouseIdle, IdleEvt.Publish)
             sens.Listen(MouseFeatureTypes.MouseQuick, QuickEvt.Publish)
             sens.Listen(MouseFeatureTypes.MouseSlow, SlowEvt.Publish)
-
+            sens.Listen(MouseFeatureTypes.MouseDiagonal, Fit1.Publish)
             // GestIT Expression
 
             (*
             let events =  ( ( ( leftB |-> clickleft_h ) |>> ( middleB |-> clickmiddle_h ) |>> ( rightB |-> clickright_h ) ) |-> triple_h) |^| !*(moving |-> moving_h)
             events.ToGestureNet(s) |> ignore
             *)
-
-            let events = !*(( fermo |-> fermo_h ) |^| ( veloce |-> veloce_h ) |^| ( lento |-> lento_h ))
+            let events = !*((diagonale |-> diagonale_h) |^| (fermo |-> fermo_h))
+//            let events = !*(( fermo |-> fermo_h ) |^| ( veloce |-> veloce_h ) |^| ( lento |-> lento_h ))
             events.ToGestureNet(sens) |> ignore
             
 
