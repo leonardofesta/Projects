@@ -8,6 +8,7 @@ module MouseTest2
     open GestIT.Utils
     open GestIT.IData
     open GestIT.TData
+    open GestIT.Events
     open System.Windows.Forms
     open System.Drawing
     open System.Collections.Generic

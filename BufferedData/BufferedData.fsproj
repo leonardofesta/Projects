@@ -55,6 +55,7 @@
     <Compile Include="Utils.fs" />
     <Compile Include="Data.fs" />
     <Compile Include="TData.fs" />
+    <Compile Include="Events.fs" />
     <Compile Include="History.fs" />
     <Compile Include="ObservableFeature.fs" />
     <Compile Include="HistoryEngine.fs" />
