@@ -5,6 +5,8 @@ module MouseTest2
 
     open GestIT
     open GestIT.FSharp
+    open GestIT.Utils
+    open GestIT.IData
     open GestIT.TData
     open System.Windows.Forms
     open System.Drawing
@@ -33,13 +35,18 @@ module MouseTest2
                   member  x.D2 = float n2
                   member  x.Time = data
 
+    type Td3d(n1:int,n2:int,n3:int) =
+        inherit System.EventArgs()
+        
+        let data = System.DateTime.Now
 
-    // MOUSE features that have to be notified from the sensor //
-(*    type MouseFeatureTypes=
-        | MouseDown = 0
-        | MouseUp = 1
-        | MouseMove = 2
-*)
+        interface TData3D with 
+                  member  x.D1 = float n1
+                  member  x.D2 = float n2
+                  member  x.D3 = float n3
+                  member  x.Time = data
+
+
     type MouseFeatureTypes=
         | MouseDown = 0
         | MouseUp = 1
@@ -48,6 +55,7 @@ module MouseTest2
         | MouseSlow = 4
         | MouseIdle = 5
         | MouseDiagonal = 6
+        | MouseCustom = 7
 
     type TrayApplication () as this =
             inherit Form()
@@ -124,6 +132,7 @@ module MouseTest2
             let veloce  = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseQuick, fun x -> true)
             let lento   = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseSlow,  fun x -> true)
             let diagonale = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseDiagonal, fun x -> true)
+            let dritto = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseCustom, fun x -> true)
 
             // ref used for movement tracking
             let a = ref 0
@@ -190,6 +199,11 @@ module MouseTest2
                 app.label.BackColor <- Color.Yellow
                 app.label.Invalidate()
 
+            let dritto_h(sender, f:MouseFeatureTypes, e:_)= 
+             //   System.Diagnostics.Debug.WriteLine("Siamo lenti")
+                app.label.Invoke(deleg, "... ~~> Movimento Retto <~~ ...") |> ignore
+                app.label.BackColor <- Color.Yellow
+                app.label.Invalidate()
            
             // Danno nuovo <---> Vedere che fare
             let buff = new Buffered1D()
@@ -208,6 +222,7 @@ module MouseTest2
                                                                                     |>List.iter( fun x -> System.Console.Write (x.ToString() + " "))
                                                                                     System.Console.WriteLine "||"
                                                                                     System.Console.WriteLine("direzione = " + d2.ToString() )
+
                                                                                     if (bb.Count()>100) 
                                                                                         then 
                                                                                             ignore
@@ -216,6 +231,13 @@ module MouseTest2
 
                                                                                     false  
                                            )
+
+            let cane = ref 0
+            let drittofun(time:float,toll:float) = fun b -> (let result = (b:Buffered1D).IsStraightDirection(time,toll)
+                                                             if (result) then cane := (!cane + 1)
+                                                                              System.Console.WriteLine("Evento Dritto" + (!cane).ToString() )
+                                                             result
+                                                             )
             let avgvel(v:float) = fun b -> (b:Buffered1D).AverageVelocity(1000.0) > v //velocità media dell'ultimo secondo + alta di
             let stationaryfunction = fun b -> (b:Buffered1D).StationaryPosition(50.0,50.0)
             let velfunction(v:float) = fun b -> System.Diagnostics.Debug.WriteLine("la velocità è :"+ (b:Buffered2D).InstantVelocity().ToString() )
@@ -224,13 +246,15 @@ module MouseTest2
             let IdleEvt  = new TEvent<_,_>( stationaryfunction, true, "idle" )
             let QuickEvt = new TEvent<_,_>( avgvel 500.0, true, "quick")
             let SlowEvt  = new TEvent<_,_>( (fun b -> (not(avgvel(500.0) b) && avgvel(100.0) b ))  , true, "slow")
-            let Fit1 = new TEvent<_,_> (retta(1.0), true, "diagionale")
+            let Fit1     = new TEvent<_,_> (retta(1.0), true, "diagionale")
+            let Dritto   = new TEvent<_,_> (drittofun(500.0,30.0), true, "movimento dritto")
 
             let evbuffer = new EventBuffer<_,_>(buff) 
-            evbuffer.addEvent(IdleEvt)
-            evbuffer.addEvent(SlowEvt)
-            evbuffer.addEvent(QuickEvt)
-            evbuffer.addEvent(Fit1)
+       //     evbuffer.addEvent(IdleEvt)
+       //     evbuffer.addEvent(SlowEvt)
+       //     evbuffer.addEvent(QuickEvt)
+       //     evbuffer.addEvent(Fit1)
+            evbuffer.addEvent(Dritto)
 
             let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( new Td1d(t.X)))      
 //            let handlingfun:(MouseEventArgs -> unit) = fun t -> (evbuffer.AddItem ( new Td2d(t.X,t.Y)))
@@ -253,18 +277,19 @@ module MouseTest2
                            |> Event.map :> app.MouseDown
             *)
                                      
-            // Danno nuovo <---> Vedere che fare
             sens.Listen(MouseFeatureTypes.MouseIdle, IdleEvt.Publish)
-            sens.Listen(MouseFeatureTypes.MouseQuick, QuickEvt.Publish)
-            sens.Listen(MouseFeatureTypes.MouseSlow, SlowEvt.Publish)
-            sens.Listen(MouseFeatureTypes.MouseDiagonal, Fit1.Publish)
+           // sens.Listen(MouseFeatureTypes.MouseQuick, QuickEvt.Publish)
+           // sens.Listen(MouseFeatureTypes.MouseSlow, SlowEvt.Publish)
+           // sens.Listen(MouseFeatureTypes.MouseDiagonal, Fit1.Publish)
+            sens.Listen(MouseFeatureTypes.MouseCustom, Dritto.Publish)
             // GestIT Expression
 
             (*
             let events =  ( ( ( leftB |-> clickleft_h ) |>> ( middleB |-> clickmiddle_h ) |>> ( rightB |-> clickright_h ) ) |-> triple_h) |^| !*(moving |-> moving_h)
             events.ToGestureNet(s) |> ignore
             *)
-            let events = !*((diagonale |-> diagonale_h) |^| (fermo |-> fermo_h))
+            //let events = !*((diagonale |-> diagonale_h) |^| (fermo |-> fermo_h))
+            let events = !*((dritto |-> dritto_h) |^| (fermo |-> fermo_h))
 //            let events = !*(( fermo |-> fermo_h ) |^| ( veloce |-> veloce_h ) |^| ( lento |-> lento_h ))
             events.ToGestureNet(sens) |> ignore
             

@@ -1,9 +1,14 @@
 ﻿module GestIT.History
 
+
+/// File inutile per ora
+
 open GestIT
 open System.Collections.Generic
 open System
 open GestIT.Data
+
+
 
 type HEvent = 
     abstract member getTimestamp : unit -> System.DateTime

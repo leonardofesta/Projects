@@ -1,56 +1,15 @@
 ﻿module GestIT.TData
 
 open System
-open GestIT.Data
+open GestIT.IData
+open GestIT.Utils
 open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open MathNet.Numerics.LinearAlgebra.Double
 open MathNet.Numerics.Distributions
 open MathNet.Numerics.IntegralTransforms
 open MathNet.Numerics.IntegralTransforms.Algorithms
-
-
-type TData = 
-    inherit Data
-    abstract member Time : DateTime
-                with get
-
-type TData1D =
-    inherit TData
-    abstract member D1 : float
-                with get 
-
-type TData2D =
-    inherit TData
-    abstract member D1 : float
-                with get 
-    abstract member D2 : float       
-                with get
-
-type TData3D =
-    inherit TData
-    abstract member D1 : float
-                with get 
-    abstract member D2 : float       
-                with get
-    abstract member D3 : float
-                with get
-
-/// <summary>
-/// Taglia una lista di TData dato un certo timespan (in millisecondi) all'indietro
-/// </summary>
-/// <param name="lista">La lista di TData</param>
-/// <param name="timespan">Il timespan, unità espressa in millisecondi e positiva  </param>
-/// <returns>La lista tagliata</returns>
-let listcut (lista : List<'U> when 'U :> TData, timespan : float) =
-        let length  = -1.0*timespan
-        Seq.toList ( Seq.filter (fun t -> ( (t:'U).Time > System.DateTime.Now.AddMilliseconds(length)  )) lista)
-
-/// <summary>
-/// Fa il quadrato dell'intero
-/// </summary>
-let sqr(x:float):float = x*x    
-
+                                    
 type Direction1D =
         |  Positive = 1
         |  Negative = -1
@@ -66,56 +25,6 @@ type Direction2D =
         |   BottomLeft = 6
         |   Left = 7
         |   TopLeft = 8
-
-
-/// <summary>
-/// Verifica che il valore "point" sia vicino rispetto ad un centro "center", con una tolleranza "tol"
-/// </summary>        
-/// <param name="point">punto che viene controllato</param>
-/// <param name="center">punto considerato come centro</param>
-/// <param name="tol">tolleranza dal punto iniziale di controllo, un valore assoluto</param>
-/// <returns>vero o falso</returns>
-let StaticPoint (point:float, center:float, tol:float ):bool =
-   
-    if (point <= (center+tol) && point>= (center-tol)) 
-        then true
-        else false
-
-///<summary>
-///Calcola i secondi di differenza tra il 1° e il 2° dato(che ci si aspetta più vecchio) e ritorna i secondi totali di differenza, come float
-///</summary>
-///<returns>I secondi totali di differenza, come float</returns>
-let timespanseconds(actual:DateTime, start:DateTime):float = 
-        actual.Subtract(start).TotalSeconds
-
-let timespanmilliseconds(actual:DateTime, start:DateTime):float = 
-        actual.Subtract(start).TotalMilliseconds
-
-
-///<summary>
-/// Fa la Regressione Lineare Semplice con il metodo QR usando 2 array di elementi una Dimensione dipendente e una indipendente <br/>
-/// 
-/// Ritorna una coppia che rappresenta l'equazione della retta  Y = a1 * X + a0 
-///</summary>
-///<returns>una coppia che rappresenta Y = a1 * X + a0 </returns>
-let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) = 
-        // Simple Least Squares Linear Regression, con pezzi tratti da:
-        // http://christoph.ruegg.name/blog/2012/9/9/linear-regression-mathnet-numerics.html
-
-        if (dependentD.Length > 1) then
-            let X = DenseMatrix.ofColumns dependentD.Length 2 [ Array.init dependentD.Length (fun i -> 1.0); dependentD ]
-            let y = DenseVector indipendentD
-            let p = X.QR().Solve(y)
-            (*
-            printfn "X: %A" X
-            printfn "y: %s" (y.ToString())
-            printfn "p: %s" (p.ToString())
-            *)
-            // L'equazione è Y = p1*X  + p0
-            (p.[0],p.[1])
-        else
-            // TODO : decidere cosa fare quando il risultato non è ricavabile (1 punto o 0 punti registrati nel buffer
-            (0.0,0.0)
 
 
 [<AbstractClass>]
@@ -287,7 +196,9 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
 
             result
 
-            
+
+
+
     
     ///<summary>
     /// fa il fitting alla retta, con la regressione lineare usando il metodo QR e restituisce 2 float
@@ -326,6 +237,20 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
         ([|dim1x|],[| dim2x|])
 *)  
 
+    member this.IsStraightDirection(timespan:float,tolleranza:float):bool = 
+        
+        // y = a*x + b
+        let a,b = this.FittingToLine(timespan)
+        let listacorta = listcut (itemlist,timespan)
+        let firsttime = listacorta.Head.Time
+        let result = 
+            listacorta
+            |> Seq.map(fun f -> distanzaeuclidea(a,b,f,firsttime))
+            |>Seq.sum 
+        
+        if (result / float listacorta.Length) < tolleranza 
+                                                        then true 
+                                                        else false 
 
 
     ///<summary>
@@ -386,16 +311,25 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
             new Buffered2D(new List<TData2D> ( newlist))
 
     ///<summary>
-    ///Calcola la velocità istantanea degli ultimi eventi negli ultimi 100ms 
+    ///Calcola la velocità istantanea degli ultimi eventi negli ultimi 100ms
     ///</summary>
     ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
-            let now = System.DateTime.Now.AddMilliseconds(-100.0) // decido di tagliare lasciandomi solo 100 ms di risultati
-            let mutable datacp = Seq.filter(fun x -> (x:TData2D).Time > now) itemlist
-                                 |>Seq.toList
-    //        Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
-    //        Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
+           this.AverageVelocity(100.0)
+
+
+    ///<summary>
+    ///Calcola la velocità media percorsa dato un intervallo di tempo, in millisecondi
+    ///</summary>
+    ///<param name="timespan">Float che rappresenta il periodo in cui calcolare la velocità media</param>
+    ///<returns>il valore di velocità media, oppure 0 se non ci sono 2 elementi necessari</returns>
+    member this.AverageVelocity(timespan:float) = 
             
+            let mutable datacp = listcut(itemlist, timespan)
+            
+    //        Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+    //        Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())    
+              
             if (Seq.length datacp >2)
                 then
                     let mutable current = datacp.Head
@@ -413,6 +347,7 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
                     velocity   
                 else
                     0.0 // TODO : Decidere cosa fare x quando non ho dettagli
+
 
     // Sa di funzione inutile... un pò na cacata
     ///<summary>
@@ -459,6 +394,32 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
             elif ( (float bottomlist.Length) > minlength) then Direction2D.Bottom
             else Direction2D.Casual            
 
+
+            
+    ///<summary>
+    ///Calcola la posizione media del punto dato un timespan e ritorna il valore
+    ///</summary>
+    ///<param name="timespan">rappresenta la dimensione di tempo per cui controllare (millisecondi) </param>
+    ///<returns>float rappresentante la posizione media</returns>    
+    member this.AveragePosition(timespan : float):float*float = 
+            
+            let lista = listcut(itemlist,timespan)
+            if (lista.Length = 0) 
+                then 
+                    Double.NaN,Double.NaN
+                else 
+                    let D1 = (
+                            lista
+                            |> List.map(fun x -> (x:TData2D).D1)
+                            |> List.average
+                            )
+                    let D2 = (
+                            lista
+                            |> List.map(fun x -> (x:TData2D).D2)
+                            |> List.average
+                            )
+                    D1,D2
+
     ///<summary>
     ///Controlla se il punto è stazionario rispetto ad una certa differenza
     ///</summary>
@@ -490,7 +451,19 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
             let dim1y,dim2y  = linearRegression(ArrayY,arrayTime)    //  Y = dim2x * X + dim1x
 
             ([|dim1x ; dim1y|],[| dim2x; dim2y|])
-       
+    
+    member this.IsStraightMovement(timespan:float,tollerance:float):bool =
+            
+           let newlist = listcut(itemlist,timespan)
+           
+           if (newlist.Length >20)
+                then
+                   let first = newlist.Head
+                   let last = newlist.Item(newlist.Length-1)  
+
+                   List.forall(fun x -> nellaretta( first, last, x, tollerance)) ((List.rev  (newlist.Tail)).Tail)
+                else
+                   false
 
 type Buffered3D (?item:List<TData3D>, ?soglia:float) =
     inherit BufferedData<TData3D>()
@@ -529,12 +502,21 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
     ///</summary>
     ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
-            let now = System.DateTime.Now.AddMilliseconds(-100.0) // decido di tagliare lasciandomi solo 100 ms di risultati
-            let mutable datacp = Seq.filter(fun x -> (x:TData3D).Time > now) itemlist
-                                 |>Seq.toList
-            Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
-            Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())
+           this.AverageVelocity(100.0)
+
+
+    ///<summary>
+    ///Calcola la velocità media percorsa dato un intervallo di tempo, in millisecondi
+    ///</summary>
+    ///<param name="timespan">Float che rappresenta il periodo in cui calcolare la velocità media</param>
+    ///<returns>il valore di velocità media, oppure 0 se non ci sono 2 elementi necessari</returns>
+    member this.AverageVelocity(timespan:float) = 
             
+            let mutable datacp = listcut(itemlist, timespan)
+            
+    //        Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+    //        Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())    
+              
             if (Seq.length datacp >2)
                 then
                     let mutable current = datacp.Head
@@ -552,7 +534,38 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
                     velocity   
                 else
                     0.0 // TODO : Decidere cosa fare x quando non ho dettagli
-    
+
+    ///<summary>
+    ///Calcola la posizione media del punto dato un timespan e ritorna il valore
+    ///</summary>
+    ///<param name="timespan">rappresenta la dimensione di tempo per cui controllare (millisecondi) </param>
+    ///<returns>float rappresentante la posizione media</returns>    
+    member this.AveragePosition(timespan : float):float*float*float = 
+            
+            let lista = listcut(itemlist,timespan)
+            if (lista.Length = 0) 
+                then 
+                    Double.NaN,Double.NaN,Double.NaN
+                else 
+                    let D1 = (
+                            lista
+                            |> List.map(fun x -> (x:TData3D).D1)
+                            |> List.average
+                            )
+                    let D2 = (
+                            lista
+                            |> List.map(fun x -> (x:TData3D).D2)
+                            |> List.average
+                            )
+                    let D3 = (
+                            lista
+                            |> List.map(fun x -> (x:TData3D).D3)
+                            |> List.average
+                            )
+
+                    D1,D2,D3
+
+
 
     ///<summary>
     ///Controlla se il punto è stazionario rispetto ad una certa differenza

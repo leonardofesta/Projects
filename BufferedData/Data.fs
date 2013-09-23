@@ -1,57 +1,13 @@
 ﻿module GestIT.Data    
 
-open System.Collections.Generic
 open System
+open System.Collections.Generic
+open GestIT.IData
 open MathNet.Numerics.LinearAlgebra
 open MathNet.Numerics.LinearAlgebra.Double
 open MathNet.Numerics.Distributions
 
 
-
-
-type Data =
-    interface
-    end
-
-
-type Accumulator<'U> when 'U :> Data = 
-
-    abstract member Additem :   'U -> unit
-
-//capire se vale la pena avere questa interfaccia
-type NumericData<'U> when 'U :> Data = 
-
-    abstract member Sum         :   'U
-                with get
-    abstract member Average     :   'U 
-                with get 
-    abstract member Variance    :   'U
-                with get
-    abstract member StDev       :   'U
-                with get
-
-
-type Data1d = 
-    inherit Data
-    abstract member D1 : float
-                with get 
-
-
-type Data2d = 
-    inherit Data
-    abstract member D1 : float
-                with get 
-    abstract member D2 : float
-                with get 
-    
-type Data3d =
-    inherit Data
-    abstract member D1 : float
-                with get 
-    abstract member D2 : float       
-                with get
-    abstract member D3 : float
-                with get
 
 // media di x
 let media (sum:float, items:int, value:float ):float =
@@ -238,5 +194,3 @@ type Acc3D() =
                                     member x.D2 = stdev2
                                     member x.D3 = stdev3
                                     } 
-
-// Prende una lista di TData e taglia tutto ciò che è più vecchio di un certo timestamp

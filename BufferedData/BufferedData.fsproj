@@ -51,11 +51,13 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IData.fs" />
+    <Compile Include="Utils.fs" />
     <Compile Include="Data.fs" />
+    <Compile Include="TData.fs" />
     <Compile Include="History.fs" />
     <Compile Include="ObservableFeature.fs" />
     <Compile Include="HistoryEngine.fs" />
-    <Compile Include="TData.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GestIT\GestIT.fsproj">
