@@ -5,10 +5,11 @@ type Data =
     interface
     end
 
-
 type Accumulator<'U> when 'U :> Data = 
 
-    abstract member Additem :   'U -> unit
+    abstract member AddItem :   'U -> unit
+
+    abstract member Restart :   unit -> unit
 
 //capire se vale la pena avere questa interfaccia
 type NumericData<'U> when 'U :> Data = 
@@ -23,20 +24,20 @@ type NumericData<'U> when 'U :> Data =
                 with get
 
 
-type Data1d = 
+type Data1D = 
     inherit Data
     abstract member D1 : float
                 with get 
 
 
-type Data2d = 
+type Data2D = 
     inherit Data
     abstract member D1 : float
                 with get 
     abstract member D2 : float
                 with get 
     
-type Data3d =
+type Data3D =
     inherit Data
     abstract member D1 : float
                 with get 
@@ -72,3 +73,11 @@ type TData3D =
                 with get
     abstract member D3 : float
                 with get
+
+
+
+
+[<AbstractClass>]
+type BufferedData<'T>() =
+    inherit System.EventArgs() 
+    abstract member AddItem: 'T -> unit

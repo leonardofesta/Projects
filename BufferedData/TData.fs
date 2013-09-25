@@ -27,11 +27,6 @@ type Direction2D =
         |   TopLeft = 8
 
 
-[<AbstractClass>]
-type BufferedData<'T>() =
-    inherit System.EventArgs() 
-    abstract member AddItem: 'T -> unit
-
 
 
 type Buffered1D (?item:List<TData1D>, ?soglia:float) =
@@ -178,7 +173,7 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
          
         let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData1D).D1) itemlist)
         let firsttime = itemlist.Item(0).Time
-        let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData1D).Time , firsttime)) itemlist)
+        let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanmilliseconds((x:TData1D).Time , firsttime)) itemlist)
 
         linearRegression(ArrayX,arrayTime)
 (*
@@ -197,7 +192,7 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
         
         let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData1D).D1) listacorta)
         let firsttime = listacorta.Item(0).Time
-        let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData1D).Time , firsttime)) listacorta)
+        let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanmilliseconds((x:TData1D).Time , firsttime)) listacorta)
 
         linearRegression(ArrayX,arrayTime)
 (*
@@ -572,5 +567,3 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
             let dim1z,dim2z  = linearRegression(ArrayZ,arrayTime)    //  Y = dim2x * X + dim1x
 
             ([|dim1x ; dim1y ; dim1z|],[| dim2x ; dim2y ; dim2z |])
-
- 

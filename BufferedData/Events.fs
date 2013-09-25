@@ -44,10 +44,8 @@ type TEvent<'X,'V> (triggerfun : 'V -> bool, ?active: bool, ?name:string)=
 ///'W il tipo di Tdata che contiene il dato da controllare con i predicati 
 ///</summary>
 ///<param name="data">l'oggetto buffer su cui controllare gli eventi</param>
-type EventBuffer<'T,'W> when 'T :> BufferedData<'W> and 'W :> TData (data:'T)  = //   when 'Y:>BufferedData) =
- 
-//:Buffered1D) = // when 'T:>BufferedData = ///(data:'T) = //   when 'Y:>BufferedData) =
-    
+type EventBuffer<'T,'W> when 'T :> BufferedData<'W> and 'W :> Data (data:'T)  =
+
     let eventlist = new List<TEvent<_,_>>()
     
     member this.addEvent(t:TEvent<_,_>) = eventlist.Add(t)
@@ -59,3 +57,4 @@ type EventBuffer<'T,'W> when 'T :> BufferedData<'W> and 'W :> TData (data:'T)  =
             |>Seq.filter( fun x -> (x.IsActive() && x.CheckFun(data)))
             |>Seq.iter(fun x ->x.Trigger(data))
            
+

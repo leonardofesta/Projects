@@ -7,6 +7,7 @@ module MouseTest2
     open GestIT.FSharp
     open GestIT.Utils
     open GestIT.IData
+    open GestIT.Data
     open GestIT.TData
     open GestIT.Events
     open System.Windows.Forms
@@ -134,6 +135,7 @@ module MouseTest2
             let lento   = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseSlow,  fun x -> true)
             let diagonale = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseDiagonal, fun x -> true)
             let dritto = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseCustom, fun x -> true)
+            let accmedia = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseCustom, fun x-> true)
 
             // ref used for movement tracking
             let a = ref 0
@@ -205,24 +207,39 @@ module MouseTest2
                 app.label.Invoke(deleg, "... ~~> Movimento Retto <~~ ...") |> ignore
                 app.label.BackColor <- Color.Yellow
                 app.label.Invalidate()
-           
+
             // Danno nuovo <---> Vedere che fare
-            let buff = new Buffered1D()
+            // lista predicati vari per le varie prove sui dati
+
+//            let bb = new NumericData<Data1D>
+           
+//            let buff = new Buffered1D()
+            let buff = new Acc1D()
+            let avgmore(v:float) =  fun b -> (let bb = (b:Acc1D)
+                                              System.Console.WriteLine("la media è --> " + (bb:>NumericData<Data1D>).Variance.D1.ToString())
+                                              if ((bb:>NumericData<Data1D>).Variance.D1>v) then  
+                                                                                          (b:>Accumulator<Data1D>).Restart()
+                                                                                          |>fun x-> true
+                                                                                          
+                                                                                         else 
+                                                                                           false
+                                             )
 
             let retta(v:float ) = fun b -> (let bb = (b:Buffered1D)
                                             let d1,d2 = if(bb.Count()>100) then bb.FittingToLine(100.0) 
                                                                               else 0.0,0.0
                                             //Trovare mega errore
-                                            if (System.Math.Abs(d2 - v) < 0.1) 
+                                            if (System.Math.Abs(d2 - v) < 1.0) 
                                                                                 then 
-                                                                                    System.Console.WriteLine("direzione = " + d2.ToString() )
+                                                                                    System.Console.WriteLine("Giusto !! " + "direzione ---> " + d2.ToString() + "   val noto -->   " + d1.ToString() )
                                                                                     true
                                                                                 else 
-                                                                                    bb.GetListBuffer()
+(*                                                                                    bb.GetListBuffer()
                                                                                     |>List.map( fun x -> (x:TData1D).D1)
                                                                                     |>List.iter( fun x -> System.Console.Write (x.ToString() + " "))
                                                                                     System.Console.WriteLine "||"
-                                                                                    System.Console.WriteLine("direzione = " + d2.ToString() )
+  *)                                                                                  
+                                                                                    System.Console.WriteLine("Male !! " + "direzione ---> " + d2.ToString() + "   val noto -->   " + d1.ToString() )
 
                                                                                     if (bb.Count()>100) 
                                                                                         then 
@@ -239,6 +256,7 @@ module MouseTest2
                                                                               System.Console.WriteLine("Evento Dritto" + (!cane).ToString() )
                                                              result
                                                              )
+
             let avgvel(v:float) = fun b -> (b:Buffered1D).AverageVelocity(1000.0) > v //velocità media dell'ultimo secondo + alta di
             let stationaryfunction = fun b -> (b:Buffered1D).StationaryPosition(50.0,50.0)
             let velfunction(v:float) = fun b -> System.Diagnostics.Debug.WriteLine("la velocità è :"+ (b:Buffered2D).InstantVelocity().ToString() )
@@ -247,17 +265,21 @@ module MouseTest2
             let IdleEvt  = new TEvent<_,_>( stationaryfunction, true, "idle" )
             let QuickEvt = new TEvent<_,_>( avgvel 500.0, true, "quick")
             let SlowEvt  = new TEvent<_,_>( (fun b -> (not(avgvel(500.0) b) && avgvel(100.0) b ))  , true, "slow")
-            let Fit1     = new TEvent<_,_> (retta(1.0), true, "diagionale")
+            let Fit1     = new TEvent<_,_> (retta(1.0), true, "retta")
             let Dritto   = new TEvent<_,_> (drittofun(500.0,30.0), true, "movimento dritto")
+            let Sopramedia  = new TEvent<_,_> (avgmore(30.0),true,"superati i 600 di media")
+
 
             let evbuffer = new EventBuffer<_,_>(buff) 
        //     evbuffer.addEvent(IdleEvt)
        //     evbuffer.addEvent(SlowEvt)
        //     evbuffer.addEvent(QuickEvt)
        //     evbuffer.addEvent(Fit1)
-            evbuffer.addEvent(Dritto)
+       //     evbuffer.addEvent(Dritto)
+            evbuffer.addEvent(Sopramedia)
 
-            let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( new Td1d(t.X)))      
+            let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( {new Data1D with member this.D1 = float t.X}))      
+//            let handlingfun:(MouseEventArgs -> unit) = fun t -> (evbuffer.AddItem ( new Td1d(t.X)))
 //            let handlingfun:(MouseEventArgs -> unit) = fun t -> (evbuffer.AddItem ( new Td2d(t.X,t.Y)))
 //            let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( new Td3d(t.X,t.Y,t.Clicks)))                                                     )
             
@@ -282,15 +304,18 @@ module MouseTest2
            // sens.Listen(MouseFeatureTypes.MouseQuick, QuickEvt.Publish)
            // sens.Listen(MouseFeatureTypes.MouseSlow, SlowEvt.Publish)
            // sens.Listen(MouseFeatureTypes.MouseDiagonal, Fit1.Publish)
-            sens.Listen(MouseFeatureTypes.MouseCustom, Dritto.Publish)
+           // sens.Listen(MouseFeatureTypes.MouseCustom, Dritto.Publish)
+            sens.Listen(MouseFeatureTypes.MouseCustom, Sopramedia.Publish)
+            
             // GestIT Expression
 
             (*
             let events =  ( ( ( leftB |-> clickleft_h ) |>> ( middleB |-> clickmiddle_h ) |>> ( rightB |-> clickright_h ) ) |-> triple_h) |^| !*(moving |-> moving_h)
             events.ToGestureNet(s) |> ignore
             *)
-            //let events = !*((diagonale |-> diagonale_h) |^| (fermo |-> fermo_h))
-            let events = !*((dritto |-> dritto_h) |^| (fermo |-> fermo_h))
+            let events = !*((accmedia |-> diagonale_h) |^| (fermo |-> fermo_h))
+//            let events = !*((diagonale |-> diagonale_h) |^| (fermo |-> fermo_h))
+//            let events = !*((dritto |-> dritto_h) |^| (fermo |-> fermo_h))
 //            let events = !*(( fermo |-> fermo_h ) |^| ( veloce |-> veloce_h ) |^| ( lento |-> lento_h ))
             events.ToGestureNet(sens) |> ignore
             
