@@ -32,8 +32,8 @@ type Acc1D() =
     let mutable stdev = -1.0
     
     override this.AddItem(d) = 
-            sum <- sum + d.D1
             avg <- media(sum,items,d.D1)
+            sum <- sum + d.D1
             x2 <- mx2(x2,items,d.D1)
             items <- (items+1 )
             variance <- x2 - (avg * avg)
@@ -92,10 +92,10 @@ type Acc2D() =
 
 
     override x.AddItem( d ) =
-            sum1 <- sum1 + d.D1
-            sum2 <- sum2 + d.D2
             avg1 <- media(sum1,items,d.D1)
             avg2 <- media(sum2,items,d.D2)
+            sum1 <- sum1 + d.D1
+            sum2 <- sum2 + d.D2
             x2_1 <- mx2(x2_1,items,d.D1)
             x2_2 <- mx2(x2_2,items,d.D2)
             items <- (items+1)
@@ -174,13 +174,14 @@ type Acc3D() =
     
 
     override x.AddItem(d:Data3D) =
-            sum1 <- sum1 + d.D1
-            sum2 <- sum2 + d.D2
-            sum3 <- sum3 + d.D3
-
+            
             avg1 <- media(sum1,items,d.D1)
             avg2 <- media(sum2,items,d.D2)
             avg3 <- media(sum3,items,d.D3)
+
+            sum1 <- sum1 + d.D1
+            sum2 <- sum2 + d.D2
+            sum3 <- sum3 + d.D3
 
             x2_1 <- mx2(x2_1,items,d.D1)
             x2_2 <- mx2(x2_2,items,d.D2)

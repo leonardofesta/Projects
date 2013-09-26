@@ -212,17 +212,18 @@ module MouseTest2
             // lista predicati vari per le varie prove sui dati
 
 //            let bb = new NumericData<Data1D>
-           
+
 //            let buff = new Buffered1D()
             let buff = new Acc1D()
+          
             let avgmore(v:float) =  fun b -> (let bb = (b:Acc1D)
-                                              System.Console.WriteLine("la media è --> " + (bb:>NumericData<Data1D>).Variance.D1.ToString())
-                                              if ((bb:>NumericData<Data1D>).Variance.D1>v) then  
-                                                                                          (b:>Accumulator<Data1D>).Restart()
-                                                                                          |>fun x-> true
+                                              System.Console.WriteLine("la media è --> " + (bb:>NumericData<Data1D>).StDev.D1.ToString())
+                                              if ((bb:>NumericData<Data1D>).StDev.D1>v) then  
+                                                                                         // (b:>Accumulator<Data1D>).Restart()
+                                                                                            true
                                                                                           
-                                                                                         else 
-                                                                                           false
+                                                                                            else 
+                                                                                            false
                                              )
 
             let retta(v:float ) = fun b -> (let bb = (b:Buffered1D)
