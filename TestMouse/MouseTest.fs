@@ -1,7 +1,4 @@
-﻿// Ulteriori informazioni su F# all'indirizzo http://fsharp.net
-// Per ulteriori informazioni, vedere il progetto 'Esercitazione su F#'.
-
-module MouseTest
+﻿module MouseTest
 
     open GestIT
     open GestIT.FSharp

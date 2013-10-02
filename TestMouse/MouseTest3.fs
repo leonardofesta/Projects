@@ -1,4 +1,4 @@
-﻿module MouseTest2
+﻿module MouseTest3
 
     open GestIT
     open GestIT.FSharp
@@ -7,10 +7,13 @@
     open GestIT.Data
     open GestIT.TData
     open GestIT.Events
+    open System.IO
+    open System.IO.Compression
     open System.Windows.Forms
     open System.Drawing
     open System.Collections.Generic
     open System.Diagnostics
+    open Playback
        
     type Delegate = delegate of string -> unit
 
@@ -84,18 +87,20 @@
                 x.Visible <- true
                 x.ShowInTaskbar <- true
                 base.OnLoad(e)
-        
-(*
 
-        //Main
-        [<EntryPoint; System.STAThread>]
-        let main argv = 
+
+    //Main
+    [<EntryPoint; System.STAThread>]
+    let main argv = 
   
             let sens = new FusionSensor<MouseFeatureTypes,_>() 
-            let s2 = new FusionSensor<_,_>() 
             let app = new TrayApplication()
             let deleg = new Delegate(fun s -> app.label.Text <- s)
             
+#if Record
+            let recorder = new EvtRecorder(new EvtSettings("Recc"))
+#endif
+
             // Predicates
             let movemouse (x:MouseEventArgs) =
                         true
@@ -211,8 +216,8 @@
 
 //            let bb = new NumericData<Data1D>
 
-//            let buff = new Buffered1D()
-            let buff = new Acc1D()
+            let buff = new Buffered1D()
+//            let buff = new Acc1D()
           
             let avgmore(v:float) =  fun b -> (let bb = (b:Acc1D)
                                               System.Console.WriteLine("la media è --> " + (bb:>NumericData<Data1D>).StDev.D1.ToString())
@@ -270,14 +275,25 @@
 
 
             let evbuffer = new EventBuffer<_,_>(buff) 
-       //     evbuffer.addEvent(IdleEvt)
+            evbuffer.addEvent(IdleEvt)
        //     evbuffer.addEvent(SlowEvt)
        //     evbuffer.addEvent(QuickEvt)
        //     evbuffer.addEvent(Fit1)
        //     evbuffer.addEvent(Dritto)
-            evbuffer.addEvent(Sopramedia)
+       //     evbuffer.addEvent(Sopramedia)
 
-            let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( {new Data1D with member this.D1 = float t.X}))      
+
+            let handlingfun:(MouseEventArgs -> unit) = fun t -> (new Td1d(t.X)
+#if Record                                                       
+                                                                 |> fun t -> (recorder.AddItem(t)
+                                                                              System.Console.WriteLine("caaaaane")
+                                                                              t)
+                                                                 
+#endif
+                                                                 |> fun t -> evbuffer.AddItem (t)
+                                                                                        )      
+
+//            let handlingfun:MouseEventArgs -> unit = fun t -> ( let item = {new Data1D with member this.D1 = float t.X}
 //            let handlingfun:(MouseEventArgs -> unit) = fun t -> (evbuffer.AddItem ( new Td1d(t.X)))
 //            let handlingfun:(MouseEventArgs -> unit) = fun t -> (evbuffer.AddItem ( new Td2d(t.X,t.Y)))
 //            let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( new Td3d(t.X,t.Y,t.Clicks)))                                                     )
@@ -290,7 +306,7 @@
             s.Listen(MouseFeatureTypes.MouseMove, app.MouseMove)
             s.Listen(MouseFeatureTypes.MouseUp, app.MouseUp)
             s.Listen(MouseFeatureTypes.MouseDown, app.MouseDown)
-            *)
+*)
 //            let evtCast<'T> e = Event.map (fun x -> x :> 'T) e
             let finalEvt = Event.map (fun x -> x :> System.EventArgs) app.MouseDown
             (*
@@ -298,7 +314,7 @@
                            |> Event.merge SlowEvt.Publish
                            |> Event.map :> app.MouseDown
             *)
-                                     
+              
             sens.Listen(MouseFeatureTypes.MouseIdle, IdleEvt.Publish)
            // sens.Listen(MouseFeatureTypes.MouseQuick, QuickEvt.Publish)
            // sens.Listen(MouseFeatureTypes.MouseSlow, SlowEvt.Publish)
@@ -306,6 +322,11 @@
            // sens.Listen(MouseFeatureTypes.MouseCustom, Dritto.Publish)
             sens.Listen(MouseFeatureTypes.MouseCustom, Sopramedia.Publish)
             
+#if Record
+            //sens.OutputStream <- openFileForZip()
+#endif
+ 
+
             // GestIT Expression
 
             (*
@@ -320,7 +341,7 @@
             
 
             Application.Run(app)
-
+#if Record
+            recorder.closeFile()
+#endif
             0
-
-*)
