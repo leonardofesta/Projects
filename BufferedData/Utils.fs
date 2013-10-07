@@ -17,9 +17,13 @@ open MathNet.Numerics.IntegralTransforms.Algorithms
 /// <param name="timespan">Il timespan, unità espressa in millisecondi e positiva  </param>
 /// <returns>La lista tagliata</returns>
 let listcut (lista : List<'U> when 'U :> TData, timespan : float) =
-        let length  = -1.0*timespan
-        Seq.toList ( Seq.filter (fun t -> ( (t:'U).Time > System.DateTime.Now.AddMilliseconds(length)  )) lista)
-
+        if Seq.length lista >0
+           then
+           let lastitem = (lista.Item(Seq.length lista-1)).Time
+           let length  = -1.0*timespan
+           Seq.toList ( Seq.filter (fun t -> ( (t:'U).Time > lastitem.AddMilliseconds(length)  )) lista)
+           else
+           Seq.toList lista
 
 
 /// <summary>

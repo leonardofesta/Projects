@@ -56,5 +56,4 @@ type EventBuffer<'T,'W> when 'T :> BufferedData<'W> and 'W :> Data (data:'T)  =
         eventlist
             |>Seq.filter( fun x -> (x.IsActive() && x.CheckFun(data)))
             |>Seq.iter(fun x ->x.Trigger(data))
-           
 

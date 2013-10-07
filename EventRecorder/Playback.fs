@@ -10,7 +10,50 @@ open GestIT.Events
 open System.IO.Compression
 open System.Windows.Forms
 open System.Threading
+open System.Collections.Generic
 
+
+    type Td1d(n:float,t:DateTime) =
+        inherit System.EventArgs()
+        
+        interface TData1D with 
+                  member  x.D1 =  n
+                  member  x.Time = t
+
+    type Td2d(n1:float,n2:float,t:DateTime) =
+        inherit System.EventArgs()
+        
+        interface TData2D with 
+                  member  x.D1 =  n1
+                  member  x.D2 =  n2
+                  member  x.Time = t
+
+    type Td3d(n1:float,n2:float,n3:float,t:DateTime) =
+        inherit System.EventArgs()
+        
+        interface TData3D with 
+                  member  x.D1 =  n1
+                  member  x.D2 =  n2
+                  member  x.D3 =  n3
+                  member  x.Time = t
+
+
+type MyParser<'U when 'U :> TData> () =
+  member x.myparse (s:String):'U =
+    let values = s.Split [|' '|]
+    let tvalue = Array.map(fun t -> int(t)) [|values.[0];values.[1];values.[2];values.[3]|]
+    let dvalue = values.[4].Split[|','|] |> Array.map Double.Parse
+    let n = DateTime.Now
+    let time = new DateTime(n.Year,n.Month,n.Day,tvalue.[0],tvalue.[1],tvalue.[2],tvalue.[3])
+
+    let data = match dvalue.Length with
+                | 1 -> new Td1d(dvalue.[0],time) :> TData
+                | 2 -> new Td2d(dvalue.[0],dvalue.[1],time) :> TData
+                | 3 -> new Td3d(dvalue.[0],dvalue.[1],dvalue.[2],time) :> TData
+                | _ -> failwith "Illegal type"
+    
+    data :?> 'U
+ 
 type EvtSettings(filename:string,?zipfile:bool ) =
 
     member this.FileName = filename
@@ -24,16 +67,78 @@ type EvtSettings(filename:string,?zipfile:bool ) =
 type EvtRecorder(setting:EvtSettings) = 
     let f:FileStream =  (setting.FileName + " " + System.DateTime.Now.ToString("HHmmss") + ".events")
                         |> fun t -> File.Open(t, FileMode.Create, FileAccess.Write)
+    
+    let f2:FileStream =  (setting.FileName + " " + System.DateTime.Now.ToString("HHmmss") + " Stringa.events")
+                        |> fun t -> File.Open(t, FileMode.Create, FileAccess.Write)
+    
                                             
     let formatter:BinaryFormatter = new BinaryFormatter()
+    let r:StreamWriter = new StreamWriter(f2)
 
     member this.AddItem(d:'T when 'T:>Data) = 
                 formatter.Serialize(f, (System.DateTime.Now, d))
+                r.WriteLine(System.DateTime.Now.ToString("HH mm ss fff") + " , " +  d.ToString() )
+                r.Flush()
 
     member this.closeFile() = 
                 f.Close()
+                r.Close()
+        
 
-type EvtCreator<'T,'U> when 'T : equality and 'U :> System.EventArgs ()= 
+type DataCreator<'U>  when 'U :> TData ()= 
+    
+    let lista = new List<'U>()
+
+    let mutable f:FileStream  = null
+ 
+    member this.choosefile() = 
+            let ofd = new OpenFileDialog()
+            ofd.InitialDirectory <- Directory.GetCurrentDirectory()
+            ofd.Filter <- "Event Files (*.events)|*.events"
+            ofd.Multiselect <- false
+            let userclicked = ofd.ShowDialog()
+            if (userclicked = DialogResult.OK) 
+                then
+                   f <- File.Open(ofd.FileName,FileMode.Open)                
+                else 
+                   System.Console.WriteLine("Errore, file non trovato")
+            let str:StreamReader = new StreamReader(f)
+            let p = new MyParser<'U>()
+            while(not(str.EndOfStream))            
+                do
+                let linea  = str.ReadLine()
+                let value  = p.myparse(linea)
+                lista.Add(value)
+            
+
+ 
+    member this.start(buffer:'V when 'V:> EventBuffer<_,_> )= 
+          let worker = new Thread(fun () -> 
+                       let mutable l = Seq.toList lista
+                       let ev = l.Head
+                       l <- l.Tail
+
+                       let mutable lastTime = ev.Time
+
+                       buffer.AddItem(ev)
+
+                       let mutable eof = false
+                       while not eof do
+                        try
+                          let ev = l.Head
+                          l <- l.Tail
+                          let dt = (ev.Time - lastTime).TotalMilliseconds
+                          lastTime <- ev.Time
+                          if  dt > 5. then Thread.Sleep(int dt)
+                          buffer.AddItem(ev)
+                        with _ -> eof <- true
+                       )
+          worker.IsBackground <- true
+          worker.Start()
+
+  
+
+type EvtPlayer<'T,'U> when 'T : equality and 'U :> System.EventArgs ()= 
     
     let mutable f:FileStream = null
     let formatter:BinaryFormatter = new BinaryFormatter()
@@ -45,7 +150,7 @@ type EvtCreator<'T,'U> when 'T : equality and 'U :> System.EventArgs ()=
     let readObj (s) =
         formatter.Deserialize(s) :?> (System.DateTime*'U)
     
-    member private this.choosefile() = 
+    member this.choosefile() = 
             let ofd = new OpenFileDialog()
             ofd.InitialDirectory <- Directory.GetCurrentDirectory()
             ofd.Filter <- "Event Files (*.events)|*.events"

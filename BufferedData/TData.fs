@@ -51,7 +51,8 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
     
     override this.AddItem(d:TData1D) = 
         itemlist.Add (d)
-        itemlist.RemoveAll(fun x -> (x.Time < System.DateTime.Now.AddMilliseconds(-1.0*threshold)))
+        System.Console.WriteLine("Elemento aggiunto " + d.D1.ToString() + "  con tempo  " + d.Time.ToString())
+  //      itemlist.RemoveAll(fun x -> (x.Time < System.DateTime.Now.AddMilliseconds(-1.0*threshold)))
         |>ignore
 
     ///<summary>
@@ -170,10 +171,11 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
     ///</summary>
     ///<return>float x float</returns>
     member this.FittingToLine():float*float =
-         
         let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData1D).D1) itemlist)
         let firsttime = itemlist.Item(0).Time
         let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanmilliseconds((x:TData1D).Time , firsttime)) itemlist)
+
+        System.Console.WriteLine( arrayTime.ToString())
 
         linearRegression(ArrayX,arrayTime)
 (*
@@ -188,11 +190,11 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
     ///</summary>
     ///<return>float x float</returns>
     member this.FittingToLine(timespan : float):float*float = 
+
         let listacorta = listcut (itemlist, timespan)
-        
         let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData1D).D1) listacorta)
         let firsttime = listacorta.Item(0).Time
-        let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanmilliseconds((x:TData1D).Time , firsttime)) listacorta)
+        let arrayTime = Seq.toArray ( Seq.map( fun x -> timespanseconds((x:TData1D).Time , firsttime)) listacorta)
 
         linearRegression(ArrayX,arrayTime)
 (*

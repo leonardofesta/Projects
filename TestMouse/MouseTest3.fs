@@ -101,6 +101,13 @@
             let recorder = new EvtRecorder(new EvtSettings("Recc"))
 #endif
 
+#if Reading
+            let datareader = new DataCreator<TData1D>()
+            datareader.choosefile()
+            
+
+#endif
+
             // Predicates
             let movemouse (x:MouseEventArgs) =
                         true
@@ -139,6 +146,7 @@
             let diagonale = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseDiagonal, fun x -> true)
             let dritto = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseCustom, fun x -> true)
             let accmedia = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseCustom, fun x-> true)
+            let fit1    = new GroundTerm<_,_>(MouseFeatureTypes.MouseCustom, fun x-> true) 
 
             // ref used for movement tracking
             let a = ref 0
@@ -230,8 +238,8 @@
                                              )
 
             let retta(v:float ) = fun b -> (let bb = (b:Buffered1D)
-                                            let d1,d2 = if(bb.Count()>100) then bb.FittingToLine(100.0) 
-                                                                              else 0.0,0.0
+                                            let d1,d2 = if(bb.Count()>20) then bb.FittingToLine(100000.0) 
+                                                                          else 0.0,0.0
                                             //Trovare mega errore
                                             if (System.Math.Abs(d2 - v) < 1.0) 
                                                                                 then 
@@ -245,7 +253,7 @@
   *)                                                                                  
                                                                                     System.Console.WriteLine("Male !! " + "direzione ---> " + d2.ToString() + "   val noto -->   " + d1.ToString() )
 
-                                                                                    if (bb.Count()>100) 
+                                                                                    if (bb.Count()>20) 
                                                                                         then 
                                                                                             ignore
                                                                                         else 
@@ -278,11 +286,13 @@
             evbuffer.addEvent(IdleEvt)
        //     evbuffer.addEvent(SlowEvt)
        //     evbuffer.addEvent(QuickEvt)
-       //     evbuffer.addEvent(Fit1)
+            evbuffer.addEvent(Fit1)
        //     evbuffer.addEvent(Dritto)
        //     evbuffer.addEvent(Sopramedia)
+#if Reading
+            let handlingfun:(MouseEventArgs -> unit) = fun t -> t |> fun x -> System.Console.WriteLine("item inserito") |> ignore
 
-
+#else
             let handlingfun:(MouseEventArgs -> unit) = fun t -> (new Td1d(t.X)
 #if Record                                                       
                                                                  |> fun t -> (recorder.AddItem(t)
@@ -297,7 +307,9 @@
 //            let handlingfun:(MouseEventArgs -> unit) = fun t -> (evbuffer.AddItem ( new Td1d(t.X)))
 //            let handlingfun:(MouseEventArgs -> unit) = fun t -> (evbuffer.AddItem ( new Td2d(t.X,t.Y)))
 //            let handlingfun:MouseEventArgs -> unit = fun t -> (evbuffer.AddItem ( new Td3d(t.X,t.Y,t.Clicks)))                                                     )
-            
+
+#endif
+
             app.MouseMove.Add(handlingfun)
 
         //    let dddd = Event.merge IdleEvt SlowEvt 
@@ -308,7 +320,7 @@
             s.Listen(MouseFeatureTypes.MouseDown, app.MouseDown)
 *)
 //            let evtCast<'T> e = Event.map (fun x -> x :> 'T) e
-            let finalEvt = Event.map (fun x -> x :> System.EventArgs) app.MouseDown
+//           let finalEvt = Event.map (fun x -> x :> System.EventArgs) app.MouseDown
             (*
                            Event.merge IdleEvt.Publish QuickEvt.Publish
                            |> Event.merge SlowEvt.Publish
@@ -318,9 +330,9 @@
             sens.Listen(MouseFeatureTypes.MouseIdle, IdleEvt.Publish)
            // sens.Listen(MouseFeatureTypes.MouseQuick, QuickEvt.Publish)
            // sens.Listen(MouseFeatureTypes.MouseSlow, SlowEvt.Publish)
-           // sens.Listen(MouseFeatureTypes.MouseDiagonal, Fit1.Publish)
+            sens.Listen(MouseFeatureTypes.MouseCustom, Fit1.Publish)
            // sens.Listen(MouseFeatureTypes.MouseCustom, Dritto.Publish)
-            sens.Listen(MouseFeatureTypes.MouseCustom, Sopramedia.Publish)
+           // sens.Listen(MouseFeatureTypes.MouseCustom, Sopramedia.Publish)
             
 #if Record
             //sens.OutputStream <- openFileForZip()
@@ -333,12 +345,15 @@
             let events =  ( ( ( leftB |-> clickleft_h ) |>> ( middleB |-> clickmiddle_h ) |>> ( rightB |-> clickright_h ) ) |-> triple_h) |^| !*(moving |-> moving_h)
             events.ToGestureNet(s) |> ignore
             *)
-            let events = !*((accmedia |-> diagonale_h) |^| (fermo |-> fermo_h))
+            let events = !*((accmedia |-> diagonale_h) |^| (fit1 |-> dritto_h) |^| (fermo |-> fermo_h))
 //            let events = !*((diagonale |-> diagonale_h) |^| (fermo |-> fermo_h))
 //            let events = !*((dritto |-> dritto_h) |^| (fermo |-> fermo_h))
 //            let events = !*(( fermo |-> fermo_h ) |^| ( veloce |-> veloce_h ) |^| ( lento |-> lento_h ))
             events.ToGestureNet(sens) |> ignore
-            
+
+#if Reading
+            datareader.start(evbuffer)
+#endif           
 
             Application.Run(app)
 #if Record
