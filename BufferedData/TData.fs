@@ -175,8 +175,6 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
         let firsttime = itemlist.Item(0).Time
         let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanmilliseconds((x:TData1D).Time , firsttime)) itemlist)
 
-        System.Console.WriteLine( arrayTime.ToString())
-
         linearRegression(ArrayX,arrayTime)
 (*
         //si potrebbe fare per uniformità con array di 1 così tutti i metodi tornano indietro l'array   
@@ -417,7 +415,9 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
             let dim1y,dim2y  = linearRegression(ArrayY,arrayTime)    //  Y = dim2x * X + dim1x
 
             ([|dim1x ; dim1y|],[| dim2x; dim2y|])
-    
+
+
+
     member this.IsStraightMovement(timespan:float,tollerance:float):bool =
             
            let newlist = listcut(itemlist,timespan)
