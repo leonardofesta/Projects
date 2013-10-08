@@ -26,8 +26,14 @@ type Direction2D =
         |   Left = 7
         |   TopLeft = 8
 
-type Direzione(x:float,timespan:float) = 
+type Direzione(timespan:float,x:float,?y:float,?z:float) = 
            member this.D1:float = x
+           member this.D2:float = match y with
+                                        | Some t->t
+                                        | None -> -1.0
+           member this.D3:float = match z with
+                                        | Some t->t
+                                        | None -> -1.0
            member this.Time:float = timespan
 
 
@@ -188,6 +194,7 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
     /// fa il fitting alla retta a partire da un certo timespan, con la regressione lineare usando il metodo QR e restituisce 2 float
     /// L'equazione è Y = r1*X  + r0
     ///</summary>
+    ///<param name="timespan">rappresenta la finestra di tempo per cui controllare dall'ultimo evento (in  millisecondi) </param>
     ///<return>float x float</returns>
     member this.FittingToLine(timespan : float):float*float = 
 
@@ -203,23 +210,28 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
         ([|dim1x|],[| dim2x|])
 *)  
 
+    ///<summary>
+    /// fa il fitting alla retta e poi controlla la distanza euclidea di tutti i punti a partire dal valore ottenuto in un certo timespan
+    ///</summary>
+    ///<param name="timespan">rappresenta la finestra di tempo per cui controllare dall'ultimo evento (in  millisecondi) </param>
+    ///<param name="tolleranza">soglia che non può essere superata dalla distanza media di tutti i valori dalla rretta</param>
+    ///<return>Booleano che indica se la retta segue una linea orizzontale</returns>
     member this.IsStraightDirection(timespan:float,tolleranza:float):bool = 
         
         // y = b*x + a
         let vnoto,coeff = this.FittingToLine(timespan)
         let listacorta = listcut (itemlist,timespan)
         let firsttime = listacorta.Head.Time
-        let arrayTimed = List.map (fun x -> new Direzione((x:TData1D).D1,timespanseconds((x:TData1D).Time , firsttime))) listacorta
+        let arrayTimed = List.map (fun x -> new Direzione(timespanseconds((x:TData1D).Time , firsttime),(x:TData1D).D1)) listacorta
  
         let result = 
             arrayTimed
             |> Seq.map(fun f -> distanzaeuclidea(coeff,vnoto,f.D1,f.Time))
             |> Seq.sum 
         System.Console.WriteLine("Distanza eucidea totale = " + result.ToString() + " diviso le unità " + ( result/  float arrayTimed.Length ).ToString())
-        arrayTimed
-        |> fun x -> 
         if (result / float listacorta.Length) < tolleranza 
-                                                        then true
+                                                        then System.Console.WriteLine("canae")
+                                                             true
                                                         else false 
 
 
@@ -441,19 +453,30 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
 
             ([|dim1x ; dim1y|],[| dim2x; dim2y|])
 
+    ///<summary>
+    /// fa il fitting alla retta e poi controlla la distanza euclidea di tutti i punti a partire dal valore ottenuto in un certo timespan
+    ///</summary>
+    ///<param name="timespan">rappresenta la finestra di tempo per cui controllare dall'ultimo evento (in  millisecondi) </param>
+    ///<param name="tolleranza">soglia che non può essere superata dalla distanza media di tutti i valori dalla rretta</param>
+    ///<return>Booleano che indica se la retta segue una linea orizzontale</returns>
+    member this.IsStraightDirection(timespan:float,tolleranza:float):bool = 
+        
+        // y = b*x + a
+        let vnoto,coeff = this.FittingToLine(timespan)
+        let listacorta = listcut (itemlist,timespan)
+        let firsttime = listacorta.Head.Time
+        let arrayTimed = List.map (fun x -> new Direzione(timespanseconds((x:TData2D).Time , firsttime),(x:TData2D).D1,(x:TData2D).D2)) listacorta
+ 
+        let result = 
+            arrayTimed
+            |> Seq.map (fun f -> Math.Sqrt( sqr(distanzaeuclidea(coeff.[0],vnoto.[0],f.D1,f.Time))+sqr(distanzaeuclidea(coeff.[1],vnoto.[1],f.D2,f.Time))))  // radice quadrata del quadrato delle distanze x dimensione
+            |> Seq.sum 
+        System.Console.WriteLine("Distanza eucidea totale = " + result.ToString() + " diviso le unità " + ( result /  float arrayTimed.Length ).ToString())
+        if (result / float listacorta.Length) < tolleranza 
+                                                        then true
+                                                        else false 
 
-    member this.IsStraightMovement(timespan:float,tollerance:float):bool =
-            
-           let newlist = listcut(itemlist,timespan)
-           
-           if (newlist.Length >20)
-                then
-                   let first = newlist.Head
-                   let last = newlist.Item(newlist.Length-1)  
 
-                   List.forall(fun x -> nellaretta( first, last, x, tollerance)) ((List.rev  (newlist.Tail)).Tail)
-                else
-                   false
 
 type Buffered3D (?item:List<TData3D>, ?soglia:float) =
     inherit BufferedData<TData3D>()
@@ -593,3 +616,51 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
             let dim1z,dim2z  = linearRegression(ArrayZ,arrayTime)    //  Y = dim2x * X + dim1x
 
             ([|dim1x ; dim1y ; dim1z|],[| dim2x ; dim2y ; dim2z |])
+
+
+
+    ///<summary>
+    /// fa il fitting alla retta, con la regressione lineare usando il metodo QR e restituisce 2 float
+    /// L'equazione è Y = r1*X  + r0
+    ///</summary>
+    ///<return>float[] della costante * float[] per il coefficiente della X</returns>
+    member this.FittingToLine(timespan:float):float[]*float[] =
+
+            let listacorta = listcut (itemlist, timespan)
+            let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData3D).D1) listacorta)
+            let ArrayY = Seq.toArray ( Seq.map(fun x -> (x:TData3D).D2) listacorta)
+            let ArrayZ = Seq.toArray ( Seq.map(fun x -> (x:TData3D).D3) listacorta)
+
+            let firsttime = listacorta.Item(0).Time
+            let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData3D).Time , firsttime)) listacorta)
+
+            let dim1x,dim2x  = linearRegression(ArrayX,arrayTime)    //  Y = dim2x * X + dim1x
+            let dim1y,dim2y  = linearRegression(ArrayY,arrayTime)    //  Y = dim2x * X + dim1x
+            let dim1z,dim2z  = linearRegression(ArrayZ,arrayTime)    //  Y = dim2x * X + dim1x
+
+            ([|dim1x ; dim1y ; dim1z|],[| dim2x ; dim2y ; dim2z |])
+
+
+    ///<summary>
+    /// fa il fitting alla retta e poi controlla la distanza euclidea di tutti i punti a partire dal valore ottenuto in un certo timespan
+    ///</summary>
+    ///<param name="timespan">rappresenta la finestra di tempo per cui controllare dall'ultimo evento (in  millisecondi) </param>
+    ///<param name="tolleranza">soglia che non può essere superata dalla distanza media di tutti i valori dalla rretta</param>
+    ///<return>Booleano che indica se la retta segue una linea orizzontale</returns>
+    member this.IsStraightDirection(timespan:float,tolleranza:float):bool = 
+        
+        // y = b*x + a
+        let vnoto,coeff = this.FittingToLine(timespan)
+        let listacorta = listcut (itemlist,timespan)
+        let firsttime = listacorta.Head.Time
+        let arrayTimed = List.map (fun x -> new Direzione(timespanseconds((x:TData3D).Time , firsttime),(x:TData3D).D1,(x:TData3D).D2,(x:TData3D).D3)) listacorta
+ 
+        let result = 
+            arrayTimed
+            |> Seq.map (fun f -> Math.Sqrt( sqr(distanzaeuclidea(coeff.[0],vnoto.[0],f.D1,f.Time))+sqr(distanzaeuclidea(coeff.[1],vnoto.[1],f.D2,f.Time))+sqr(distanzaeuclidea(coeff.[2],vnoto.[2],f.D3,f.Time))))  // radice quadrata del quadrato delle distanze x dimensione
+            |> Seq.sum 
+        System.Console.WriteLine("Distanza eucidea totale = " + result.ToString() + " diviso le unità " + ( result /  float arrayTimed.Length ).ToString())
+        if (result / float listacorta.Length) < tolleranza 
+                                                        then true
+                                                        else false 
+

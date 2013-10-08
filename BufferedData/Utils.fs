@@ -72,8 +72,8 @@ let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) =
         // http://christoph.ruegg.name/blog/2012/9/9/linear-regression-mathnet-numerics.html
 
         if (dependentD.Length > 1) then
-            let X = DenseMatrix.ofColumns dependentD.Length 2 [ Array.init dependentD.Length (fun i -> 1.0); dependentD ]
-            let y = DenseVector indipendentD
+            let X = DenseMatrix.ofColumns dependentD.Length 2 [ Array.init dependentD.Length (fun i -> 1.0); indipendentD ]
+            let y = DenseVector dependentD
             let p = X.QR().Solve(y)
             (*
             printfn "X: %A" X
@@ -86,32 +86,15 @@ let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) =
             // TODO : decidere cosa fare quando il risultato non è ricavabile (1 punto o 0 punti registrati nel buffer)
             (0.0,0.0)
 
-
-// Non va, cagata
+// a coefficiente angolare
+// b termine noto noto 
 // c dimesnione 
 // d timespan
 let distanzaeuclidea(a:float,b:float,c:float,d:float):float =
-    
-//    c  = coeff * tempo +b 
 
-    let result =  Math.Abs (Math.Abs(d  * a + b) -  c)
-    System.Console.WriteLine(" coeff  = " + a.ToString() + " vnoto  = " + b.ToString() + " dim  = " + c.ToString() + " timespan  = " + d.ToString())
-    System.Console.WriteLine("risultato ->" + result.ToString())
-//    System.Console.WriteLine("result --> " + Math.Abs((c.Time.Subtract(d)).TotalMilliseconds  * a + b).ToString() + "  c --->  " + c.D1.ToString()  )
-//    System.Console.WriteLine("a -->  " + a.ToString() + "   b -->  " + b.ToString())
-//    System.Console.WriteLine("tempo ---> " + Math.Abs((c.Time.Subtract(d)).TotalMilliseconds).ToString())
-//    System.Console.WriteLine ("blablablaba   "    +  result.ToString())
+// Dato y = ax+b  ->   | ax+b - c | distanza dalla retta
+
+    let result =  Math.Abs (d  * a + b -  c)
+//    System.Console.WriteLine(" coeff  = " + a.ToString() + " vnoto  = " + b.ToString() + " dim  = " + c.ToString() + " timespan  = " + d.ToString())
+//    System.Console.WriteLine("risultato ->" + result.ToString())
     result
-
-
-// Non va, cagata
-let nellaretta(a:TData2D,b:TData2D,c:TData2D,toll:float):bool =
-    let valore = Math.Abs (Math.Abs((c.D2-a.D2)*(b.D1-a.D1))- Math.Abs((c.D1-a.D1)*(b.D2-a.D2)))
-    let tolleranza = toll + (Math.Abs(a.D1 - b.D1)) 
- //   System.Console.WriteLine("Andata valore --> " + valore.ToString() + "    Tolleranza --> " + tolleranza.ToString() )
- 
-    if (valore < tolleranza)   then
-                                    true 
-                               else 
-                                    false
-
