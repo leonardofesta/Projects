@@ -3,6 +3,7 @@
 
 open System
 open GestIT.IData
+
 open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open MathNet.Numerics.LinearAlgebra.Double
@@ -87,13 +88,19 @@ let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) =
 
 
 // Non va, cagata
-let distanzaeuclidea(a:float,b:float,c:TData1D,d:DateTime):float =
+// c dimesnione 
+// d timespan
+let distanzaeuclidea(a:float,b:float,c:float,d:float):float =
     
-    let result =  Math.Abs (c.Time.Subtract(d).TotalMilliseconds  * a + b) -  c.D1
-    System.Console.WriteLine("result --> " + Math.Abs((c.Time.Subtract(d)).TotalMilliseconds  * a + b).ToString() + "  c --->  " + c.D1.ToString()  )
-    System.Console.WriteLine("a -->  " + a.ToString() + "   b -->  " + b.ToString())
-    System.Console.WriteLine("tempo ---> " + Math.Abs((c.Time.Subtract(d)).TotalMilliseconds).ToString())
-    System.Console.WriteLine ("blablablaba   "    +  result.ToString())
+//    c  = coeff * tempo +b 
+
+    let result =  Math.Abs (Math.Abs(d  * a + b) -  c)
+    System.Console.WriteLine(" coeff  = " + a.ToString() + " vnoto  = " + b.ToString() + " dim  = " + c.ToString() + " timespan  = " + d.ToString())
+    System.Console.WriteLine("risultato ->" + result.ToString())
+//    System.Console.WriteLine("result --> " + Math.Abs((c.Time.Subtract(d)).TotalMilliseconds  * a + b).ToString() + "  c --->  " + c.D1.ToString()  )
+//    System.Console.WriteLine("a -->  " + a.ToString() + "   b -->  " + b.ToString())
+//    System.Console.WriteLine("tempo ---> " + Math.Abs((c.Time.Subtract(d)).TotalMilliseconds).ToString())
+//    System.Console.WriteLine ("blablablaba   "    +  result.ToString())
     result
 
 

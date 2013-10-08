@@ -26,7 +26,9 @@ type Direction2D =
         |   Left = 7
         |   TopLeft = 8
 
-
+type Direzione(x:float,timespan:float) = 
+           member this.D1:float = x
+           member this.Time:float = timespan
 
 
 type Buffered1D (?item:List<TData1D>, ?soglia:float) =
@@ -203,17 +205,21 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
 
     member this.IsStraightDirection(timespan:float,tolleranza:float):bool = 
         
-        // y = a*x + b
-        let a,b = this.FittingToLine(timespan)
+        // y = b*x + a
+        let vnoto,coeff = this.FittingToLine(timespan)
         let listacorta = listcut (itemlist,timespan)
         let firsttime = listacorta.Head.Time
+        let arrayTimed = List.map (fun x -> new Direzione((x:TData1D).D1,timespanseconds((x:TData1D).Time , firsttime))) listacorta
+ 
         let result = 
-            listacorta
-            |> Seq.map(fun f -> distanzaeuclidea(a,b,f,firsttime))
-            |>Seq.sum 
-        
+            arrayTimed
+            |> Seq.map(fun f -> distanzaeuclidea(coeff,vnoto,f.D1,f.Time))
+            |> Seq.sum 
+        System.Console.WriteLine("Distanza eucidea totale = " + result.ToString() + " diviso le unità " + ( result/  float arrayTimed.Length ).ToString())
+        arrayTimed
+        |> fun x -> 
         if (result / float listacorta.Length) < tolleranza 
-                                                        then true 
+                                                        then true
                                                         else false 
 
 
@@ -262,7 +268,8 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
 
     override this.AddItem(d:TData2D) = 
         itemlist.Add (d)
-        itemlist.RemoveAll(fun x -> (x.Time < System.DateTime.Now.AddMilliseconds(-1.0*threshold)))
+   //     itemlist.RemoveAll(fun x -> (x.Time < System.DateTime.Now.AddMilliseconds(-1.0*threshold)))
+   // TODO: Tolto per usare gli eventi farocchi e non stare troppo a badare al timestamp
         |>ignore
 
     ///<summary>
@@ -416,6 +423,23 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
 
             ([|dim1x ; dim1y|],[| dim2x; dim2y|])
 
+    ///<summary>
+    /// fa il fitting alla retta, con la regressione lineare usando il metodo QR e restituisce 2 float
+    /// L'equazione è Y = r1*X  + r0
+    ///</summary>
+    ///<return>float[] della costante * float[] per il coefficiente della X</returns>
+    member this.FittingToLine(timespan:float):float[]*float[] =
+
+            let listacorta = listcut (itemlist, timespan)
+            let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData2D).D1) listacorta)
+            let ArrayY = Seq.toArray ( Seq.map(fun x -> (x:TData2D).D2) listacorta)
+            let firsttime = listacorta.Item(0).Time
+            let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData2D).Time , firsttime)) listacorta)
+
+            let dim1x,dim2x  = linearRegression(ArrayX,arrayTime)    //  Y = dim2x * X + dim1x
+            let dim1y,dim2y  = linearRegression(ArrayY,arrayTime)    //  Y = dim2x * X + dim1x
+
+            ([|dim1x ; dim1y|],[| dim2x; dim2y|])
 
 
     member this.IsStraightMovement(timespan:float,tollerance:float):bool =

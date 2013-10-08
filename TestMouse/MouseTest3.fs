@@ -103,6 +103,8 @@
 
 #if Reading
             let datareader = new DataCreator<TData1D>()
+//            let datareader = new DataCreator<TData2D>()
+
             datareader.choosefile()
             
 
@@ -144,7 +146,7 @@
             let veloce  = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseQuick, fun x -> true)
             let lento   = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseSlow,  fun x -> true)
             let diagonale = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseDiagonal, fun x -> true)
-            let dritto = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseCustom, fun x -> true)
+            let dritto = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseDiagonal, fun x -> true)
             let accmedia = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseCustom, fun x-> true)
             let fit1    = new GroundTerm<_,_>(MouseFeatureTypes.MouseCustom, fun x-> true) 
 
@@ -246,27 +248,37 @@
                                                                                     System.Console.WriteLine("Giusto !! " + "direzione ---> " + d2.ToString() + "   val noto -->   " + d1.ToString() )
                                                                                     true
                                                                                 else 
-(*                                                                                    bb.GetListBuffer()
-                                                                                    |>List.map( fun x -> (x:TData1D).D1)
-                                                                                    |>List.iter( fun x -> System.Console.Write (x.ToString() + " "))
-                                                                                    System.Console.WriteLine "||"
-  *)                                                                                  
                                                                                     System.Console.WriteLine("Male !! " + "direzione ---> " + d2.ToString() + "   val noto -->   " + d1.ToString() )
-
-                                                                                    if (bb.Count()>20) 
-                                                                                        then 
-                                                                                            ignore
-                                                                                        else 
-                                                                                            ignore
-
                                                                                     false  
                                            )
 
+            let retta2d(v:float ) = fun b -> (let bb = (b:Buffered2D)
+                                              let d1,d2 = if(bb.Count()>20) then bb.FittingToLine(100000.0) 
+                                                                          else [|0.0;0.0|],[|0.0;0.0|]
+                                              //Trovare mega errore
+                                              if (System.Math.Abs(d2.[0] - v) < 1.0) 
+                                                                                then 
+                                                                                    System.Console.WriteLine("Giusto !! " + "direzione ---> " + d2.[0].ToString() + "   val noto -->   " + d1.[0].ToString() )
+                                                                                    System.Console.WriteLine("Giusto !! " + "direzione ---> " + d2.[1].ToString() + "   val noto -->   " + d1.[1].ToString() )
+                                                                                    true
+                                                                                else 
+                                                                                    System.Console.WriteLine("Male !! " + "direzione ---> " + d2.[0].ToString() + "   val noto -->   " + d1.[0].ToString() )
+                                                                                    System.Console.WriteLine("Male !! " + "direzione ---> " + d2.[1].ToString() + "   val noto -->   " + d1.[1].ToString() )
+                                                                                    false  
+                                           )
+
+
+
             let cane = ref 0
-            let drittofun(time:float,toll:float) = fun b -> (let result = (b:Buffered1D).IsStraightDirection(time,toll)
-                                                             if (result) then cane := (!cane + 1)
-                                                                              System.Console.WriteLine("Evento Dritto" + (!cane).ToString() )
-                                                             result
+            let drittofun(time:float,toll:float) = fun b -> (let bb = (b:Buffered1D)
+                                                             if (bb.Count()>60) 
+                                                                 then
+                                                                    let result = bb.IsStraightDirection(time,toll)
+                                                                    if (result) then cane := (!cane + 1)
+                                                                    System.Console.WriteLine("Evento Dritto" + (!cane).ToString() )
+                                                                    result
+                                                                 else
+                                                                    false
                                                              )
 
             let avgvel(v:float) = fun b -> (b:Buffered1D).AverageVelocity(1000.0) > v //velocità media dell'ultimo secondo + alta di
@@ -278,19 +290,21 @@
             let QuickEvt = new TEvent<_,_>( avgvel 500.0, true, "quick")
             let SlowEvt  = new TEvent<_,_>( (fun b -> (not(avgvel(500.0) b) && avgvel(100.0) b ))  , true, "slow")
             let Fit1     = new TEvent<_,_> (retta(1.0), true, "retta")
-            let Dritto   = new TEvent<_,_> (drittofun(500.0,30.0), true, "movimento dritto")
+            let Dritto   = new TEvent<_,_> (drittofun(500000.0,30.0), true, "movimento dritto")
             let Sopramedia  = new TEvent<_,_> (avgmore(30.0),true,"superati i 600 di media")
 
 
             let evbuffer = new EventBuffer<_,_>(buff) 
-            evbuffer.addEvent(IdleEvt)
+       //     evbuffer.addEvent(IdleEvt)
        //     evbuffer.addEvent(SlowEvt)
        //     evbuffer.addEvent(QuickEvt)
             evbuffer.addEvent(Fit1)
-       //     evbuffer.addEvent(Dritto)
+            evbuffer.addEvent(Dritto)
        //     evbuffer.addEvent(Sopramedia)
 #if Reading
-            let handlingfun:(MouseEventArgs -> unit) = fun t -> t |> fun x -> System.Console.WriteLine("item inserito") |> ignore
+            let handlingfun:(MouseEventArgs -> unit) = fun t -> t 
+                                                               // |> fun x -> System.Console.WriteLine("item inserito") 
+                                                                |> ignore
 
 #else
             let handlingfun:(MouseEventArgs -> unit) = fun t -> (new Td1d(t.X)
@@ -327,11 +341,11 @@
                            |> Event.map :> app.MouseDown
             *)
               
-            sens.Listen(MouseFeatureTypes.MouseIdle, IdleEvt.Publish)
+           // sens.Listen(MouseFeatureTypes.MouseIdle, IdleEvt.Publish)
            // sens.Listen(MouseFeatureTypes.MouseQuick, QuickEvt.Publish)
            // sens.Listen(MouseFeatureTypes.MouseSlow, SlowEvt.Publish)
             sens.Listen(MouseFeatureTypes.MouseCustom, Fit1.Publish)
-           // sens.Listen(MouseFeatureTypes.MouseCustom, Dritto.Publish)
+            sens.Listen(MouseFeatureTypes.MouseDiagonal, Dritto.Publish)
            // sens.Listen(MouseFeatureTypes.MouseCustom, Sopramedia.Publish)
             
 #if Record
@@ -345,7 +359,7 @@
             let events =  ( ( ( leftB |-> clickleft_h ) |>> ( middleB |-> clickmiddle_h ) |>> ( rightB |-> clickright_h ) ) |-> triple_h) |^| !*(moving |-> moving_h)
             events.ToGestureNet(s) |> ignore
             *)
-            let events = !*((accmedia |-> diagonale_h) |^| (fit1 |-> dritto_h) |^| (fermo |-> fermo_h))
+            let events = !*((fit1 |-> diagonale_h) |^| dritto |-> dritto_h )
 //            let events = !*((diagonale |-> diagonale_h) |^| (fermo |-> fermo_h))
 //            let events = !*((dritto |-> dritto_h) |^| (fermo |-> fermo_h))
 //            let events = !*(( fermo |-> fermo_h ) |^| ( veloce |-> veloce_h ) |^| ( lento |-> lento_h ))
