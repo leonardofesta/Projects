@@ -60,8 +60,12 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
     override this.AddItem(d:TData1D) = 
         itemlist.Add (d)
         System.Console.WriteLine("Elemento aggiunto " + d.D1.ToString() + "  con tempo  " + d.Time.ToString())
-  //      itemlist.RemoveAll(fun x -> (x.Time < System.DateTime.Now.AddMilliseconds(-1.0*threshold)))
+#if Reading
+        //Evitare di fare il remove all inserendo eventi con orari arbitrari sarebbero cancellati
+#else
+        itemlist.RemoveAll(fun x -> (x.Time < System.DateTime.Now.AddMilliseconds(-1.0*threshold)))
         |>ignore
+#endif
 
     ///<summary>
     ///Restituisce un nuovo oggetto con il buffer tagliato a tot millisecondi
@@ -226,7 +230,7 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
  
         let result = 
             arrayTimed
-            |> Seq.map(fun f -> distanzaeuclidea(coeff,vnoto,f.D1,f.Time))
+            |> Seq.map(fun f -> disteuclidea(coeff,vnoto,f.D1,f.Time))
             |> Seq.sum 
         System.Console.WriteLine("Distanza eucidea totale = " + result.ToString() + " diviso le unità " + ( result/  float arrayTimed.Length ).ToString())
         if (result / float listacorta.Length) < tolleranza 
@@ -280,9 +284,14 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
 
     override this.AddItem(d:TData2D) = 
         itemlist.Add (d)
-   //     itemlist.RemoveAll(fun x -> (x.Time < System.DateTime.Now.AddMilliseconds(-1.0*threshold)))
-   // TODO: Tolto per usare gli eventi farocchi e non stare troppo a badare al timestamp
+#if Reading
+        //Evitare di fare il remove all inserendo eventi con orari arbitrari sarebbero cancellati
+#else
+        itemlist.RemoveAll(fun x -> (x.Time < System.DateTime.Now.AddMilliseconds(-1.0*threshold)))
         |>ignore
+
+#endif
+
 
     ///<summary>
     ///Restituisce un nuovo oggetto con il buffer tagliato a tot millisecondi
@@ -469,13 +478,33 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
  
         let result = 
             arrayTimed
-            |> Seq.map (fun f -> Math.Sqrt( sqr(distanzaeuclidea(coeff.[0],vnoto.[0],f.D1,f.Time))+sqr(distanzaeuclidea(coeff.[1],vnoto.[1],f.D2,f.Time))))  // radice quadrata del quadrato delle distanze x dimensione
+            |> Seq.map (fun f -> Math.Sqrt( sqr(disteuclidea(coeff.[0],vnoto.[0],f.D1,f.Time))+sqr(disteuclidea(coeff.[1],vnoto.[1],f.D2,f.Time))))  // radice quadrata del quadrato delle distanze x dimensione
             |> Seq.sum 
         System.Console.WriteLine("Distanza eucidea totale = " + result.ToString() + " diviso le unità " + ( result /  float arrayTimed.Length ).ToString())
         if (result / float listacorta.Length) < tolleranza 
                                                         then true
                                                         else false 
 
+    member this.LinearMovement(timespan:float,tolleranza:float):bool = 
+        
+
+        let listacorta = listcut (itemlist, timespan)
+        let ArrayX = Seq.toArray ( Seq.map(fun x -> (x:TData2D).D1) listacorta)
+        let ArrayY = Seq.toArray ( Seq.map(fun x -> (x:TData2D).D2) listacorta)
+        let firsttime = listacorta.Item(0).Time
+        let arrayTime = Seq.toArray ( Seq.map(fun x -> timespanseconds((x:TData2D).Time , firsttime)) listacorta)
+
+        let vnoto,coeff  = linearRegression(ArrayY,ArrayX)    //  Y = dim2x * X + dim1x
+
+        let firsttime = listacorta.Head.Time
+        let Listavalori = List.map (fun x -> new Direzione(0.0,(x:TData2D).D1,(x:TData2D).D2)) listacorta
+ 
+        let result = 
+            Listavalori
+            |> Seq.map (fun f -> disteuclidea(coeff,vnoto,f.D2,f.D1))  // radice quadrata del quadrato delle distanze x dimensione
+
+//        System.Console.WriteLine("Distanza eucidea totale = " + result.ToString() + " diviso le unità " + ( result /  float arrayTimed.Length ).ToString())
+        Seq.forall(fun x -> ( x < tolleranza) )  result 
 
 
 type Buffered3D (?item:List<TData3D>, ?soglia:float) =
@@ -497,8 +526,12 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
 
     override this.AddItem(d:TData3D) =
             itemlist.Add  (d)
+ #if Reading
+            //Evitare di fare il remove all inserendo eventi con orari arbitrari sarebbero cancellati
+#else
             itemlist.RemoveAll(fun x -> (x.Time < System.DateTime.Now.AddMilliseconds(-1.0*threshold)))
             |>ignore
+#endif
 
     ///<summary>
     ///Restituisce un nuovo oggetto con il buffer tagliato a tot millisecondi
@@ -657,7 +690,7 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
  
         let result = 
             arrayTimed
-            |> Seq.map (fun f -> Math.Sqrt( sqr(distanzaeuclidea(coeff.[0],vnoto.[0],f.D1,f.Time))+sqr(distanzaeuclidea(coeff.[1],vnoto.[1],f.D2,f.Time))+sqr(distanzaeuclidea(coeff.[2],vnoto.[2],f.D3,f.Time))))  // radice quadrata del quadrato delle distanze x dimensione
+            |> Seq.map (fun f -> Math.Sqrt( sqr(disteuclidea(coeff.[0],vnoto.[0],f.D1,f.Time))+sqr(disteuclidea(coeff.[1],vnoto.[1],f.D2,f.Time))+sqr(disteuclidea(coeff.[2],vnoto.[2],f.D3,f.Time))))  // radice quadrata del quadrato delle distanze x dimensione
             |> Seq.sum 
         System.Console.WriteLine("Distanza eucidea totale = " + result.ToString() + " diviso le unità " + ( result /  float arrayTimed.Length ).ToString())
         if (result / float listacorta.Length) < tolleranza 

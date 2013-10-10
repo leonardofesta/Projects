@@ -86,15 +86,17 @@ let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) =
             // TODO : decidere cosa fare quando il risultato non è ricavabile (1 punto o 0 punti registrati nel buffer)
             (0.0,0.0)
 
-// a coefficiente angolare
-// b termine noto noto 
-// c dimesnione 
-// d timespan
-let distanzaeuclidea(a:float,b:float,c:float,d:float):float =
 
-// Dato y = ax+b  ->   | ax+b - c | distanza dalla retta
-
-    let result =  Math.Abs (d  * a + b -  c)
+///<summary>
+/// Dato y = ax+b  ->   | ax+b - c | distanza dalla retta
+///</summary>
+/// <param name="coeff">coefficiente angolare della retta</param>
+/// <param name="vnoto">termine noto della retta</param>
+/// <param name="valore">valore della dimensione attuale (da confrontare con la variabile dipendente)</param>
+/// <param name="timespan">timespan (variabile indipendente </param>
+///<returns>una coppia che rappresenta Y = a1 * X + a0 </returns>
+let disteuclidea(coeff:float,vnoto:float,valore:float,timespan:float):float =
+    let result = Math.Abs (timespan  * coeff + vnoto -  valore)
 //    System.Console.WriteLine(" coeff  = " + a.ToString() + " vnoto  = " + b.ToString() + " dim  = " + c.ToString() + " timespan  = " + d.ToString())
 //    System.Console.WriteLine("risultato ->" + result.ToString())
     result

@@ -74,7 +74,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;Reading</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Release\BufferedData.XML</DocumentationFile>

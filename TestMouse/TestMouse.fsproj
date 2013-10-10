@@ -51,8 +51,9 @@
   <ItemGroup>
     <Compile Include="MouseTest.fs" />
     <Compile Include="MouseTest2.fs" />
-    <Compile Include="MouseTest3.fs" />
     <None Include="App.config" />
+    <Compile Include="MouseTest3.fs" />
+    <Compile Include="MouseTest4.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BufferedData\BufferedData.fsproj">

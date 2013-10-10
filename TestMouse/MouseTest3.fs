@@ -88,7 +88,7 @@
                 x.ShowInTaskbar <- true
                 base.OnLoad(e)
 
-
+(*
     //Main
     [<EntryPoint; System.STAThread>]
     let main argv = 
@@ -374,3 +374,6 @@
             recorder.closeFile()
 #endif
             0
+
+
+*)
