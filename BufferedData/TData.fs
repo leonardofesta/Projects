@@ -76,6 +76,35 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
             let newlist = listcut(itemlist,millisec)
             new Buffered1D(new List<TData1D> ( newlist))
 
+
+
+    ///<summary>
+    ///Calcola la distanza totale percorsa percorsa dato un intervallo di tempo, in millisecondi
+    ///</summary>
+    ///<param name="timespan">Float che rappresenta il periodo in cui calcolare la distanza percorsa</param>
+    ///<returns>la distanza totale percorsa</returns>
+    member this.TotalDistance(timespan:float) = 
+            
+            let mutable datacp = listcut(itemlist, timespan)
+            
+    //        Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+    //        Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())    
+              
+            if (Seq.length datacp >2)
+                then
+                    let mutable current = datacp.Head
+                    let mutable distance = 0.0
+                    datacp <- datacp.Tail
+                    while(not(datacp.IsEmpty))
+                        do
+                        distance <- Math.Abs(current.D1 - datacp.Head.D1) + distance
+                        current <- datacp.Head
+                        datacp <- datacp.Tail
+
+                    distance
+                else
+                    0.0
+
     ///<summary>
     ///Calcola la velocità istantanea degli ultimi eventi negli ultimi 100ms
     ///</summary>
@@ -97,19 +126,11 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
             
             if (Seq.length datacp >2)
                 then
-                    let mutable current = datacp.Head.D1
                     let startingtime = datacp.Head.Time
                     let lasttime = (datacp.Item(datacp.Length - 1)).Time
-                    let mutable distance = 0.0
-                    datacp <- datacp.Tail
-                    while(not(datacp.IsEmpty))
-                        do
-                        distance <- Math.Abs(current - datacp.Head.D1) + distance
-                        current <- datacp.Head.D1
-                        datacp <- datacp.Tail
+                    let distance = this.TotalDistance(timespan)
 
                     let velocity = (distance / (lasttime - startingtime).TotalMilliseconds)*1000.0
-                    System.Console.WriteLine (velocity.ToString())
                     velocity   
                 else
                     0.0 // TODO : Decidere cosa fare x quando non ho dettagli
@@ -277,10 +298,14 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
                             | Some h -> h
 
 
-    member this.Count () = itemlist.Count
-  
-    member this.Clear () = 
-            itemlist.Clear()
+    member this.Count () = itemlist.Count    
+
+    member this.Clear () = itemlist.Clear()
+
+    member this.GetArrayBuffer() = Seq.toArray(itemlist)
+
+    member this.GetListBuffer() = Seq.toList(itemlist)
+
 
     override this.AddItem(d:TData2D) = 
         itemlist.Add (d)
@@ -309,13 +334,12 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
     member this.InstantVelocity() = 
            this.AverageVelocity(100.0)
 
-
     ///<summary>
-    ///Calcola la velocità media percorsa dato un intervallo di tempo, in millisecondi
+    ///Calcola la distanza totale percorsa percorsa dato un intervallo di tempo, in millisecondi
     ///</summary>
-    ///<param name="timespan">Float che rappresenta il periodo in cui calcolare la velocità media</param>
-    ///<returns>il valore di velocità media, oppure 0 se non ci sono 2 elementi necessari</returns>
-    member this.AverageVelocity(timespan:float) = 
+    ///<param name="timespan">Float che rappresenta il periodo in cui calcolare la distanza percorsa</param>
+    ///<returns>la distanza totale percorsa</returns>
+    member this.TotalDistance(timespan:float) = 
             
             let mutable datacp = listcut(itemlist, timespan)
             
@@ -325,8 +349,6 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
             if (Seq.length datacp >2)
                 then
                     let mutable current = datacp.Head
-                    let startingtime = current.Time
-                    let lasttime = (datacp.Item(datacp.Length - 1)).Time
                     let mutable distance = 0.0
                     datacp <- datacp.Tail
                     while(not(datacp.IsEmpty))
@@ -335,6 +357,31 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
                         current <- datacp.Head
                         datacp <- datacp.Tail
 
+                    distance
+                else
+                    0.0 // TODO : Decidere cosa fare x quando non ho dettagli
+
+
+
+
+    ///<summary>
+    ///Calcola la velocità media percorsa dato un intervallo di tempo, in millisecondi
+    ///</summary>
+    ///<param name="timespan">Float che rappresenta il periodo in cui calcolare la velocità media</param>
+    ///<returns>il valore di velocità media, oppure 0 se non ci sono 2 elementi necessari</returns>
+    member this.AverageVelocity(timespan:float) = 
+            
+            let datacp = listcut(itemlist, timespan)
+            
+    //        Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+    //        Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())    
+              
+            if (Seq.length datacp >2)
+                then
+                    let startingtime = datacp.Head.Time
+                    let lasttime = (datacp.Item(datacp.Length - 1)).Time
+                    let distance = this.TotalDistance(timespan)
+                  
                     let velocity = (distance / (lasttime - startingtime).TotalMilliseconds)*1000.0
                     velocity   
                 else
@@ -519,10 +566,13 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
                             | None -> new List<TData3D>()
                             | Some h -> h
 
-    member this.Count () = itemlist.Count
-    
-    member this.Clear () = 
-            itemlist.Clear()
+    member this.Count () = itemlist.Count    
+
+    member this.Clear () = itemlist.Clear()
+
+    member this.GetArrayBuffer() = Seq.toArray(itemlist)
+
+    member this.GetListBuffer() = Seq.toList(itemlist)
 
     override this.AddItem(d:TData3D) =
             itemlist.Add  (d)
@@ -544,11 +594,45 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
 
 
     ///<summary>
+    ///Calcola la distanza totale percorsa percorsa dato un intervallo di tempo, in millisecondi
+    ///</summary>
+    ///<param name="timespan">Float che rappresenta il periodo in cui calcolare la distanza percorsa</param>
+    ///<returns>la distanza totale percorsa</returns>
+    member this.TotalDistance(timespan:float) = 
+            
+            let mutable datacp = listcut(itemlist, timespan)
+            
+    //        Console.WriteLine("lunghezza itemlist -> " + (Seq.length itemlist).ToString())
+    //        Console.WriteLine("lunghezza datacp -> " + (Seq.length datacp).ToString())    
+              
+            if (Seq.length datacp >2)
+                then
+                    let mutable current = datacp.Head
+                    let mutable distance = 0.0
+                    datacp <- datacp.Tail
+                    while(not(datacp.IsEmpty))
+                        do
+                        distance <- Math.Sqrt(sqr(current.D1 - datacp.Head.D1)+sqr(current.D2 - datacp.Head.D2) + sqr(current.D3 - datacp.Head.D3)) + distance
+                        current <- datacp.Head
+                        datacp <- datacp.Tail
+
+                    distance
+                else
+                    0.0 // TODO : Decidere cosa fare x quando non ho dettagli
+
+
+
+
+
+
+    ///<summary>
     ///Calcola la velocità istantanea degli ultimi eventi negli ultimi 100ms
     ///</summary>
     ///<returns>la velocità istantanea oppure 0 se non ci sono 2 elementi necessari</returns>
     member this.InstantVelocity() = 
            this.AverageVelocity(100.0)
+
+
 
 
     ///<summary>
@@ -565,17 +649,10 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
               
             if (Seq.length datacp >2)
                 then
-                    let mutable current = datacp.Head
                     let startingtime = datacp.Head.Time
                     let lasttime = (datacp.Item(datacp.Length - 1)).Time
-                    let mutable distance = 0.0
-                    datacp <- datacp.Tail
-                    while(not(datacp.IsEmpty))
-                        do
-                        distance <- Math.Sqrt(sqr(current.D1 - datacp.Head.D1) + sqr(current.D2 - datacp.Head.D2) + sqr(current.D3 - datacp.Head.D3)) + distance
-                        current <- datacp.Head
-                        datacp <- datacp.Tail
-
+                    let distance = this.TotalDistance(timespan)
+                  
                     let velocity = (distance / (lasttime - startingtime).TotalMilliseconds)*1000.0
                     velocity   
                 else

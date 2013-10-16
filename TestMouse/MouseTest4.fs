@@ -139,9 +139,9 @@
             let fermo   = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseIdle,  fun x -> true)
             let dritto = new GroundTerm<MouseFeatureTypes,_>(MouseFeatureTypes.MouseDiagonal, fun x -> true)
             let lineare = new GroundTerm<_,_>(MouseFeatureTypes.MouseCustom,fun x -> true)
-             
+
             let straight = new GroundTerm<_,_>(MouseFeatureTypes.MouseCustom,fun x-> true)
-            
+
 
             // Danno nuovo <---> Vedere che fare
 
@@ -170,6 +170,12 @@
 
             let buff = new Buffered2D()
 
+            let tryfun () = fun b -> ( let bb = (b:Buffered1D)
+                                       let dati = bb.GetListBuffer()
+                                       let q1 = query { for d:TData1D in dati do select d.D1 }
+                                        
+                                       true
+                                     ) 
             let drittofun(time:float,toll:float) = fun b -> (let bb = (b:Buffered2D)
                                                              if (bb.Count()>20) 
                                                                  then
@@ -178,20 +184,27 @@
                                                                  else
                                                                     false
                                                              )
-            let movimentoorizzontale (time:float,toll:float ) = fun b -> (let bb= (b:Buffered2D)
-                                                                          if (bb.Count()>20)
-                                                                            then
-                                                                                let result = bb.LinearMovement(time,toll)
-                                                                                result
-                                                                            else
-                                                                                false
+            let movimentoorizzontale (dist:float, time:float,toll:float ) = fun b -> (let bb= (b:Buffered2D)
+                                                                            if ((bb.Count()>20) && (bb.TotalDistance(time)>dist))
+                                                                                then
+                                                                                (*
+                                                                                    let dati = bb.GetListBuffer()
+                                                                                    let q1 = query { for d:TData2D in dati do select d.D1 }
+                                                                                    System.Console.WriteLine("----")
+                                                                                    Seq.iter (fun f -> System.Console.WriteLine( f.ToString())) q1
+                                                                                    System.Console.WriteLine("....." + Seq.length( q1).ToString()  )
+                                                                                *) 
+                                                                                    let result = bb.LinearMovement(time,toll)
+                                                                                    result
+                                                                                else
+                                                                                    false
                                                                          )
 
             let stationaryfunction = fun b -> (b:Buffered2D).StationaryPosition(50.0,50.0)
-            
+
             let IdleEvt  = new TEvent<_,_>( stationaryfunction, true, "idle" )
             let Dritto   = new TEvent<_,_> (drittofun(500.0,10.0), true, "movimento dritto")
-            let Lineare = new TEvent<_,_> ( movimentoorizzontale(1000.0,30.0),true,"movimento orizzontale")
+            let Lineare  = new TEvent<_,_> ( movimentoorizzontale(200.0,700.0,25.0),true,"movimento orizzontale")
 
             let evbuffer = new EventBuffer<_,_>(buff) 
             evbuffer.addEvent(IdleEvt)
