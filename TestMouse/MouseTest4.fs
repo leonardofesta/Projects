@@ -185,20 +185,20 @@
                                                                     false
                                                              )
             let movimentoorizzontale (dist:float, time:float,toll:float ) = fun b -> (let bb= (b:Buffered2D)
-                                                                            if ((bb.Count()>20) && (bb.TotalDistance(time)>dist))
-                                                                                then
-                                                                                (*
-                                                                                    let dati = bb.GetListBuffer()
-                                                                                    let q1 = query { for d:TData2D in dati do select d.D1 }
-                                                                                    System.Console.WriteLine("----")
-                                                                                    Seq.iter (fun f -> System.Console.WriteLine( f.ToString())) q1
-                                                                                    System.Console.WriteLine("....." + Seq.length( q1).ToString()  )
-                                                                                *) 
-                                                                                    let result = bb.LinearMovement(time,toll)
-                                                                                    result
-                                                                                else
-                                                                                    false
-                                                                         )
+                                                                                     if ((bb.Count()>20) && (bb.TotalDistance(time)>dist))
+                                                                                            then
+                                                                                            (*
+                                                                                                let dati = bb.GetListBuffer()
+                                                                                                let q1 = query { for d:TData2D in dati do select d.D1 }
+                                                                                                System.Console.WriteLine("----")
+                                                                                                Seq.iter (fun f -> System.Console.WriteLine( f.ToString())) q1
+                                                                                                System.Console.WriteLine("....." + Seq.length( q1).ToString()  )
+                                                                                            *) 
+                                                                                                let result = bb.LinearMovement(time,toll)
+                                                                                                result
+                                                                                            else
+                                                                                                false
+                                                                                     )
 
             let stationaryfunction = fun b -> (b:Buffered2D).StationaryPosition(50.0,50.0)
 
@@ -263,4 +263,5 @@
             recorder.closeFile()
 #endif
             0
+
 

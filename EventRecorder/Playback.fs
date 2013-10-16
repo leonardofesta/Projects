@@ -12,30 +12,45 @@ open System.Windows.Forms
 open System.Threading
 open System.Collections.Generic
 
+    [<AbstractClassAttribute>]
+    type Td () = 
+        inherit System.EventArgs() 
+        abstract member printfn : unit -> String
+
 
     type Td1d(n:float,t:DateTime) =
-        inherit System.EventArgs()
+        inherit Td()
         
         interface TData1D with 
-                  member  x.D1 =  n
-                  member  x.Time = t
+                  member  this.D1 =  n
+                  member  this.Time = t
+        
+        override this.printfn() = 
+                n.ToString()
 
     type Td2d(n1:float,n2:float,t:DateTime) =
-        inherit System.EventArgs()
+        inherit Td()
         
         interface TData2D with 
                   member  x.D1 =  n1
                   member  x.D2 =  n2
                   member  x.Time = t
 
+        override this.printfn() = 
+                n1.ToString() + " " + n2.ToString() 
+
+
     type Td3d(n1:float,n2:float,n3:float,t:DateTime) =
-        inherit System.EventArgs()
+        inherit Td()
         
         interface TData3D with 
                   member  x.D1 =  n1
                   member  x.D2 =  n2
                   member  x.D3 =  n3
                   member  x.Time = t
+
+        override this.printfn() = 
+                n1.ToString() + " " + n2.ToString() + " " + n3.ToString()
 
 
 type MyParser<'U when 'U :> TData> () =
@@ -84,6 +99,7 @@ type EvtRecorder(setting:EvtSettings) =
                 f.Close()
                 r.Close()
         
+
 
 type DataCreator<'U>  when 'U :> TData ()= 
     
@@ -190,3 +206,23 @@ type EvtPlayer<'T,'U> when 'T : equality and 'U :> System.EventArgs ()=
                             with get f = 
                                  if not(evts.ContainsKey(f)) then evts.Add(f, new Event<'U>())
                                  evts.[f].Publish
+
+
+type SimulationEventWriter<'T when 'T :> Td>(filename:string, msinterval:int, quantity:int, startingvalue:'T, generationfun:'T->'T )  =
+
+    let f:FileStream =  (filename + " " + System.DateTime.Now.ToString("HHmmss") + ".events")
+                        |> fun t -> File.Open(t, FileMode.Create, FileAccess.Write)
+
+    let writer:StreamWriter = new StreamWriter(f)
+    
+    let time = System.DateTime.Now.AddHours(-1.0)
+
+    let mutable currentvalue = startingvalue
+    do
+      for i in 1 .. quantity do
+        writer.WriteLine( time.AddMilliseconds(float(i * msinterval)).ToString("HH mm ss fff ") +  currentvalue.printfn())
+        currentvalue <- generationfun(currentvalue)
+    
+      writer.Flush()
+      writer.Close()
+      f.Close()
