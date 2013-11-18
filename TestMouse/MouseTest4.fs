@@ -58,6 +58,7 @@
         | MouseIdle = 5
         | MouseDiagonal = 6
         | MouseCustom = 7
+        | MouseFunzia = 8
 
     type TrayApplication () as this =
             inherit Form()
@@ -141,7 +142,7 @@
             let lineare = new GroundTerm<_,_>(MouseFeatureTypes.MouseCustom,fun x -> true)
 
             let straight = new GroundTerm<_,_>(MouseFeatureTypes.MouseCustom,fun x-> true)
-
+            let funzionafunzione = new GroundTerm<_,_>(MouseFeatureTypes.MouseFunzia,fun x-> true)
 
             // Danno nuovo <---> Vedere che fare
 
@@ -161,6 +162,12 @@
              //   System.Diagnostics.Debug.WriteLine("Siamo lenti")
                 app.label.Invoke(deleg, "... ~~> Movimento Retto <~~ ...") |> ignore
                 app.label.BackColor <- Color.Yellow
+                app.label.Invalidate()
+
+            let funzia_h(sender, f:MouseFeatureTypes, e:_)= 
+                System.Diagnostics.Debug.WriteLine("Funziaaaaaaaaaaaaaa!")
+                app.label.Invoke(deleg, "... ~~> Segue la funzione <~~ ..." + System.DateTime.Now.Millisecond.ToString()) |> ignore
+                app.label.BackColor <- Color.Brown
                 app.label.Invalidate()
 
             // Danno nuovo <---> Vedere che fare
@@ -202,15 +209,20 @@
                                                                                      )
 
             let stationaryfunction = fun b -> (b:Buffered2D).StationaryPosition(50.0,50.0)
+            let ffollow = fun (x,y) -> (x:TimespanData).D1<(y:TimespanData).D1
+            let funziafun  = fun b -> let valore = (b:Buffered2D).FollowingFunction((fun x -> new TimespanData(x,500.0,1000.0)),ffollow,2000.0)
+                                      System.Console.WriteLine("blablablabla " + valore.ToString())
+                                      valore >0.99
 
             let IdleEvt  = new TEvent<_,_>( stationaryfunction, true, "idle" )
             let Dritto   = new TEvent<_,_> (drittofun(500.0,10.0), true, "movimento dritto")
             let Lineare  = new TEvent<_,_> ( movimentoorizzontale(200.0,700.0,25.0),true,"movimento orizzontale")
-
+            let Funzia   = new TEvent<_,_> (funziafun, true, "segue la funzione")
             let evbuffer = new EventBuffer<_,_>(buff) 
             evbuffer.addEvent(IdleEvt)
        //     evbuffer.addEvent(Dritto)
             evbuffer.addEvent(Lineare)
+            evbuffer.addEvent(Funzia)
 
 #if Reading
             let handlingfun:(MouseEventArgs -> unit) = fun t -> t 
@@ -245,14 +257,15 @@
             sens.Listen(MouseFeatureTypes.MouseIdle, IdleEvt.Publish)
            // sens.Listen(MouseFeatureTypes.MouseCustom, Dritto.Publish)
             sens.Listen(MouseFeatureTypes.MouseCustom, Lineare.Publish)            
+            sens.Listen(MouseFeatureTypes.MouseFunzia,Funzia.Publish)
 #if Record
             //sens.OutputStream <- openFileForZip()
 #endif
  
 
             // GestIT Expression
-
-            let events = !*((fermo |-> fermo_h )|^| (lineare |-> dritto_h) )
+//            (fermo |-> fermo_h )|^| (lineare |-> dritto_h) |^| 
+            let events = !*( (funzionafunzione |-> funzia_h ))
             events.ToGestureNet(sens) |> ignore
 
 #if Reading

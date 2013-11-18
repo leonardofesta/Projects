@@ -274,35 +274,25 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
         new Buffered1D(data ,threshold)
 
     ///<summary>
-    ///Boh vedi di aggiungere, un'altra funzione che verifichi il predicato, magari poi ne metto due o tre di base da utilizzare :)
+    ///<param name=funzione> funzione per calcolare i valori da seguire (rispetto al tempo, float tempo --> timespan data)
+    ///<param name=funzione> funzione che verifica la proprietà richiesta, restituendo un bool
+    ///<return> Ritorna un float con una percentuale (0.qualcosa) che rappresenta quante iterazioni sono ok</return>
     ///</summary>
-    member this.UnderFunction(funzione:(float -> TimespanData), timespan:float) =    ///TODO : dare titolo
+    member this.FollowingFunction(theoricfun:(float -> TimespanData), checkingfun:((TimespanData*TimespanData) -> Boolean) , timespan:float) =    ///TODO : dare titolo
  
         let listatagliata = listcut (itemlist,timespan)
         let primo = listatagliata.Head.Time
         let listatimeshift = List.map (fun x -> let bb = x:TData1D
                                                 new TimespanData(timespanmilliseconds(x.Time,primo),x.D1)) listatagliata
  
-        let listafunzione  = List.map ( fun x -> funzione (x:TimespanData).Time) listatimeshift
- 
-        let risposta = Seq.forall2(fun x y -> ((x:TimespanData).D1 >= (y:TimespanData).D1)) listatimeshift listafunzione
-        
-        /// TODO : da definire bene
-        (*
-        let lunghezza = Seq.length listafunzione
-        if (lunghezza > 2) then
-            for i in 0 .. (lunghezza - 2)
-               do
-                  let a1 = listafunzione.[i]   
-                  let a2 = listafunzione.[i+1]
-                  let b1 = listatimeshift.[i]
-                  let b2 = listatimeshift.[i+1]
-                  
-                  
-                  ignore
-        *)
-        
-        risposta
+        let listafunzione  = List.map ( fun x -> theoricfun (x:TimespanData).Time) listatimeshift
+        let totale = List.length listafunzione
+        let mutable totvere = 0
+        for i in 0 .. totale-1 do
+               if checkingfun( listatimeshift.[i],listafunzione.[i]) then totvere <- totvere+1
+
+        (float totvere)/ (float totale)
+
 
     ///<summary>
     ///Fa la trasformata di fourier, usa come coefficiente radice n e per l'inversa è 1/(radice n )  
@@ -329,6 +319,8 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
                                         })  d1buff  (this.GetArrayBuffer()) 
         Buffered1D(new List<TData1D>(valori))
   
+
+
 
 type Buffered2D (?item:List<TData2D>, ?soglia:float) =
     inherit BufferedData<TData2D>()
@@ -601,6 +593,28 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
         let data  = new List<TData2D> ( Seq.filter(funzione) itemlist )
         new Buffered2D(data ,threshold)
 
+    
+    ///<summary>
+    ///<param name=funzione> funzione per calcolare i valori da seguire (rispetto al tempo, float tempo --> timespan data)
+    ///<param name=funzione> funzione che verifica la proprietà richiesta, restituendo un bool
+    ///<return> Ritorna un float con una percentuale (0.qualcosa) che rappresenta quante iterazioni sono ok</return>
+    ///</summary>
+    member this.FollowingFunction(theoricfun:(float -> TimespanData), checkingfun:((TimespanData*TimespanData) -> Boolean) , timespan:float) =    ///TODO : dare titolo
+ 
+        let listatagliata = listcut (itemlist,timespan)
+        let primo = listatagliata.Head.Time
+        let listatimeshift = List.map (fun x -> let bb = x:TData2D
+                                                new TimespanData(timespanmilliseconds(x.Time,primo),x.D1,x.D2)) listatagliata
+ 
+        let listafunzione  = List.map ( fun x -> theoricfun (x:TimespanData).Time) listatimeshift
+        let totale = List.length listafunzione
+        let mutable totvere = 0
+        for i in 0 .. totale-1 do
+               if checkingfun( listatimeshift.[i],listafunzione.[i]) then totvere <- totvere+1
+
+        (float totvere)/ (float totale)
+
+
 
 type Buffered3D (?item:List<TData3D>, ?soglia:float) =
     inherit BufferedData<TData3D>()
@@ -827,4 +841,24 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
         new Buffered3D(data ,threshold)
 
 
+
+    ///<summary>
+    ///<param name=funzione> funzione per calcolare i valori da seguire (rispetto al tempo, float tempo --> timespan data)
+    ///<param name=funzione> funzione che verifica la proprietà richiesta, restituendo un bool
+    ///<return> Ritorna un float con una percentuale (0.qualcosa) che rappresenta quante iterazioni sono ok</return>
+    ///</summary>
+    member this.FollowingFunction(theoricfun:(float -> TimespanData), checkingfun:((TimespanData*TimespanData) -> Boolean) , timespan:float) =    ///TODO : dare titolo
+ 
+        let listatagliata = listcut (itemlist,timespan)
+        let primo = listatagliata.Head.Time
+        let listatimeshift = List.map (fun x -> let bb = x:TData3D
+                                                new TimespanData(timespanmilliseconds(x.Time,primo),x.D1,x.D2,x.D3)) listatagliata
+ 
+        let listafunzione  = List.map ( fun x -> theoricfun (x:TimespanData).Time) listatimeshift
+        let totale = List.length listafunzione
+        let mutable totvere = 0
+        for i in 0 .. totale-1 do
+               if checkingfun( listatimeshift.[i],listafunzione.[i]) then totvere <- totvere+1
+
+        (float totvere)/ (float totale)
     

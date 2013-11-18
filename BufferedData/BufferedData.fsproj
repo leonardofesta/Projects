@@ -56,9 +56,6 @@
     <Compile Include="Data.fs" />
     <Compile Include="TData.fs" />
     <Compile Include="Events.fs" />
-    <Compile Include="History.fs" />
-    <Compile Include="ObservableFeature.fs" />
-    <Compile Include="HistoryEngine.fs" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
