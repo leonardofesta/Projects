@@ -26,7 +26,7 @@ type Direction2D =
         |   Left = 7
         |   TopLeft = 8
 
-type Direzione(timespan:float,x:float,?y:float,?z:float) = 
+type TimespanData(timespan:float,x:float,?y:float,?z:float) = 
            member this.D1:float = x
            member this.D2:float = match y with
                                         | Some t->t
@@ -35,6 +35,13 @@ type Direzione(timespan:float,x:float,?y:float,?z:float) =
                                         | Some t->t
                                         | None -> -1.0
            member this.Time:float = timespan
+
+type FunzioneDir = 
+        |   Under = 0
+        |   Attraversa = 1
+        |   Over = 2
+        
+
 
 
 type Buffered1D (?item:List<TData1D>, ?soglia:float) =
@@ -247,7 +254,7 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
         let vnoto,coeff = this.FittingToLine(timespan)
         let listacorta = listcut (itemlist,timespan)
         let firsttime = listacorta.Head.Time
-        let arrayTimed = List.map (fun x -> new Direzione(timespanseconds((x:TData1D).Time , firsttime),(x:TData1D).D1)) listacorta
+        let arrayTimed = List.map (fun x -> new TimespanData(timespanseconds((x:TData1D).Time , firsttime),(x:TData1D).D1)) listacorta
  
         let result = 
             arrayTimed
@@ -259,6 +266,43 @@ type Buffered1D (?item:List<TData1D>, ?soglia:float) =
                                                              true
                                                         else false 
 
+    ///<summary>
+    ///Fa sampling sull'input restituendo un nuovo oggetto BufferedData 
+    ///</summary>
+    member this.Sample(funzione:(TData1D -> bool)) = 
+        let data  = new List<TData1D> ( Seq.filter(funzione) itemlist )
+        new Buffered1D(data ,threshold)
+
+    ///<summary>
+    ///Boh vedi di aggiungere, un'altra funzione che verifichi il predicato, magari poi ne metto due o tre di base da utilizzare :)
+    ///</summary>
+    member this.UnderFunction(funzione:(float -> TimespanData), timespan:float) =    ///TODO : dare titolo
+ 
+        let listatagliata = listcut (itemlist,timespan)
+        let primo = listatagliata.Head.Time
+        let listatimeshift = List.map (fun x -> let bb = x:TData1D
+                                                new TimespanData(timespanmilliseconds(x.Time,primo),x.D1)) listatagliata
+ 
+        let listafunzione  = List.map ( fun x -> funzione (x:TimespanData).Time) listatimeshift
+ 
+        let risposta = Seq.forall2(fun x y -> ((x:TimespanData).D1 >= (y:TimespanData).D1)) listatimeshift listafunzione
+        
+        /// TODO : da definire bene
+        (*
+        let lunghezza = Seq.length listafunzione
+        if (lunghezza > 2) then
+            for i in 0 .. (lunghezza - 2)
+               do
+                  let a1 = listafunzione.[i]   
+                  let a2 = listafunzione.[i+1]
+                  let b1 = listatimeshift.[i]
+                  let b2 = listatimeshift.[i+1]
+                  
+                  
+                  ignore
+        *)
+        
+        risposta
 
     ///<summary>
     ///Fa la trasformata di fourier, usa come coefficiente radice n e per l'inversa è 1/(radice n )  
@@ -521,7 +565,7 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
         let vnoto,coeff = this.FittingToLine(timespan)
         let listacorta = listcut (itemlist,timespan)
         let firsttime = listacorta.Head.Time
-        let arrayTimed = List.map (fun x -> new Direzione(timespanseconds((x:TData2D).Time , firsttime),(x:TData2D).D1,(x:TData2D).D2)) listacorta
+        let arrayTimed = List.map (fun x -> new TimespanData(timespanseconds((x:TData2D).Time , firsttime),(x:TData2D).D1,(x:TData2D).D2)) listacorta
  
         let result = 
             arrayTimed
@@ -544,7 +588,7 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
         let vnoto,coeff  = linearRegression(ArrayY,ArrayX)    //  Y = dim2x * X + dim1x
 
         let firsttime = listacorta.Head.Time
-        let Listavalori = List.map (fun x -> new Direzione(0.0,(x:TData2D).D1,(x:TData2D).D2)) listacorta
+        let Listavalori = List.map (fun x -> new TimespanData(0.0,(x:TData2D).D1,(x:TData2D).D2)) listacorta
  
         let result = 
             Listavalori
@@ -552,6 +596,10 @@ type Buffered2D (?item:List<TData2D>, ?soglia:float) =
 
 //        System.Console.WriteLine("Distanza eucidea totale = " + result.ToString() + " diviso le unità " + ( result /  float arrayTimed.Length ).ToString())
         Seq.forall(fun x -> ( x < tolleranza) )  result 
+
+    member this.Sample(funzione:(TData2D -> bool)) = 
+        let data  = new List<TData2D> ( Seq.filter(funzione) itemlist )
+        new Buffered2D(data ,threshold)
 
 
 type Buffered3D (?item:List<TData3D>, ?soglia:float) =
@@ -763,7 +811,7 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
         let vnoto,coeff = this.FittingToLine(timespan)
         let listacorta = listcut (itemlist,timespan)
         let firsttime = listacorta.Head.Time
-        let arrayTimed = List.map (fun x -> new Direzione(timespanseconds((x:TData3D).Time , firsttime),(x:TData3D).D1,(x:TData3D).D2,(x:TData3D).D3)) listacorta
+        let arrayTimed = List.map (fun x -> new TimespanData(timespanseconds((x:TData3D).Time , firsttime),(x:TData3D).D1,(x:TData3D).D2,(x:TData3D).D3)) listacorta
  
         let result = 
             arrayTimed
@@ -774,3 +822,9 @@ type Buffered3D (?item:List<TData3D>, ?soglia:float) =
                                                         then true
                                                         else false 
 
+    member this.Sample(funzione:(TData3D -> bool)) = 
+        let data  = new List<TData3D> ( Seq.filter(funzione) itemlist )
+        new Buffered3D(data ,threshold)
+
+
+    

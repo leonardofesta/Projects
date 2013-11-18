@@ -44,13 +44,13 @@
                 x.Visible <- true
                 x.ShowInTaskbar <- true
                 base.OnLoad(e)
-        
         (*
+        
         //Main
         [<EntryPoint; System.STAThread>]
         let main argv = 
   
-            let s = new FusionSensor<MouseFeatureTypes,MouseEventArgs>()  
+            let sensor = new FusionSensor<MouseFeatureTypes,MouseEventArgs>()  
             let app = new TrayApplication()
             let deleg = new Delegate(fun s -> app.label.Text <- s)
             
@@ -78,11 +78,11 @@
                         false
 
             // Ground term declaration
-            let leftB   = new GroundTerm<MouseFeatureTypes,MouseEventArgs>(MouseFeatureTypes.MouseDown, (pushbutton MouseButtons.Left)) 
-            let rightB  = new GroundTerm<MouseFeatureTypes,MouseEventArgs>(MouseFeatureTypes.MouseDown, (pushbutton MouseButtons.Right)) 
-            let middleB = new GroundTerm<MouseFeatureTypes,MouseEventArgs>(MouseFeatureTypes.MouseDown, (pushbutton MouseButtons.Middle)) 
-            let moving  = new GroundTerm<MouseFeatureTypes,MouseEventArgs>(MouseFeatureTypes.MouseMove, movemouse )
-            let upButt  = new GroundTerm<MouseFeatureTypes,MouseEventArgs>(MouseFeatureTypes.MouseUp, mouseup)
+            let LeftButton   = new GroundTerm<_,_>(MouseFeatureTypes.MouseDown, (pushbutton MouseButtons.Left)) 
+            let MiddleButton = new GroundTerm<_,_>(MouseFeatureTypes.MouseDown, (pushbutton MouseButtons.Middle)) 
+            let RightButton  = new GroundTerm<_,_>(MouseFeatureTypes.MouseDown, (pushbutton MouseButtons.Right)) 
+            let moving  = new GroundTerm<_,_>(MouseFeatureTypes.MouseMove, movemouse )
+            let MouseUp  = new GroundTerm<_,_>(MouseFeatureTypes.MouseUp, mouseup)
 
 
             // ref used for movement tracking
@@ -124,19 +124,34 @@
                 app.label.BackColor <- Color.Beige
                 app.label.Invalidate()
             
-
+            let LeftClick_h (sender, f:MouseFeatureTypes, e:MouseEventArgs) =
+                                                System.Console.WriteLine("Click left")
+            let MiddleClick_h (sender, f:MouseFeatureTypes, e:MouseEventArgs) =
+                                                System.Console.WriteLine("Middle Click")
+            let RightClick_h (sender, f:MouseFeatureTypes, e:MouseEventArgs) =
+                                                System.Console.WriteLine("Right Click")
+            let MouseUp_h (sender, f:MouseFeatureTypes, e:MouseEventArgs) =
+                                                System.Console.WriteLine("Mouse Up")
+            let ThreeClick_h (sender, f:MouseFeatureTypes, e:MouseEventArgs) =
+                                                System.Console.WriteLine("Triple Click")
+       
 //            let buff = new Buff
 
             // Binding between features and IEvents
-            s.Listen(MouseFeatureTypes.MouseMove, app.MouseMove)
-            s.Listen(MouseFeatureTypes.MouseUp, app.MouseUp)
-            s.Listen(MouseFeatureTypes.MouseDown, app.MouseDown)
+            sensor.Listen(MouseFeatureTypes.MouseMove, app.MouseMove)
+            sensor.Listen(MouseFeatureTypes.MouseUp, app.MouseUp)
+            sensor.Listen(MouseFeatureTypes.MouseDown, app.MouseDown)
 
             // GestIT Expression
             let events =  ( ( ( leftB |-> clickleft_h ) |>> ( middleB |-> clickmiddle_h ) |>> ( rightB |-> clickright_h ) ) |-> triple_h) |^| !*(moving |-> moving_h)
-            events.ToGestureNet(s) |> ignore
+            events.ToGestureNet(sensor)|>ignore
 
             Application.Run(app)
+
+
+            let events =  !*(( LeftButton |-> LeftClick_h ) |^| ( MiddleButton |-> MiddleClick_h ) |^| ( RightButton |-> RightClick_h ) |^| (MouseUp |-> MouseUp_h) )
+            let events =  !*(( LeftButton |>>  MiddleButton |>>  RightButton) |-> ThreeClick_h) 
+
 
             0
         *)

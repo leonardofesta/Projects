@@ -60,13 +60,6 @@
     <Compile Include="ObservableFeature.fs" />
     <Compile Include="HistoryEngine.fs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\GestIT\GestIT.fsproj">
-      <Name>GestIT</Name>
-      <Project>{5c55e4d1-9af9-4db4-a8c9-1201972b18da}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-  </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>

@@ -1,7 +1,8 @@
 ﻿module GestIT.HistoryEngine
 open GestIT.History
-open GestIT.FSharp
 open GestIT.Features
+open GestIT
+open GestIT.FSharp
 open System.Collections.Generic
 
 
