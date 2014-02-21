@@ -1,9 +1,9 @@
-﻿module GestIT.Utils
+﻿module BufferData.Utils
 
+// In questo file ci sono funzioni varie di appoggio usate nel codice per evitare ripetizioni
 
 open System
-open GestIT.IData
-
+open BufferData.IData
 open System.Collections.Generic
 open MathNet.Numerics.LinearAlgebra
 open MathNet.Numerics.LinearAlgebra.Double
@@ -17,7 +17,7 @@ open MathNet.Numerics.IntegralTransforms.Algorithms
 /// <param name="lista">La lista di TData</param>
 /// <param name="timespan">Il timespan, unità espressa in millisecondi e positiva  </param>
 /// <returns>La lista tagliata</returns>
-let listcut (lista : List<'U> when 'U :> TData, timespan : float) =
+let listcut (lista : List<'U> when 'U :> TData<'T>, timespan : float) =
         if Seq.length lista >0
            then
            let lastitem = (lista.Item(Seq.length lista-1)).Time
@@ -68,22 +68,13 @@ let timespanmilliseconds(actual:DateTime, start:DateTime):float =
 ///</summary>
 ///<returns>una coppia che rappresenta Y = a1 * X + a0 </returns>
 let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) = 
-        // Simple Least Squares Linear Regression, con pezzi tratti da:
-        // http://christoph.ruegg.name/blog/2012/9/9/linear-regression-mathnet-numerics.html
 
         if (dependentD.Length > 1) then
             let X = DenseMatrix.ofColumns dependentD.Length 2 [ Array.init dependentD.Length (fun i -> 1.0); indipendentD ]
             let y = DenseVector dependentD
             let p = X.QR().Solve(y)
-            (*
-            printfn "X: %A" X
-            printfn "y: %s" (y.ToString())
-            printfn "p: %s" (p.ToString())
-            *)
-            // L'equazione è Y = p1*X  + p0
             (p.[0],p.[1])
         else
-            // TODO : decidere cosa fare quando il risultato non è ricavabile (1 punto o 0 punti registrati nel buffer)
             (0.0,0.0)
 
 
@@ -97,6 +88,48 @@ let linearRegression(dependentD:float[], indipendentD:float[] ):(float*float) =
 ///<returns>una coppia che rappresenta Y = a1 * X + a0 </returns>
 let disteuclidea(coeff:float,vnoto:float,valore:float,timespan:float):float =
     let result = Math.Abs (timespan  * coeff + vnoto -  valore)
-//    System.Console.WriteLine(" coeff  = " + a.ToString() + " vnoto  = " + b.ToString() + " dim  = " + c.ToString() + " timespan  = " + d.ToString())
-//    System.Console.WriteLine("risultato ->" + result.ToString())
+
     result
+
+///<summary>
+/// funzone di supporto per avere una lista di float stampati  in sequenza
+///</summary>
+let printfloat (mylist:list<float>):String = 
+    let mutable stringa = ""
+    for x in (List.map (fun x -> x.ToString()) mylist) do
+        stringa <- stringa+" "+x
+
+    stringa
+
+///<summary>
+/// funzione che data una lista e un intervallo verifica che non vi sia mai una distanza temporale superiore
+/// <param name="mylist">Lista di TData da controllare</param>
+/// <param name="interval">Intervallo massimo di tempo tra 2 istanze</param>
+///</summary>
+let continuity(mylist:list<'T> when 'T :> TData<_>, interval:float):bool =
+            if (mylist.Length < 2)
+                then 
+                   false
+                else
+                   let a = List.rev ((List.rev mylist).Tail)
+                   let secondlist = List.append ([(mylist.Head)]) a
+                   let timediff = List.map2 (fun x y -> ((x:>TData<_>).Time.Subtract((y:>TData<_>).Time)).TotalMilliseconds
+                                                        ) mylist secondlist
+                   List.forall(fun x -> x<interval) timediff
+
+
+///<summary>
+/// Verifica la presenza di un dato nella lista
+/// <param name="item">dato da cercare</param>
+/// <param name="lista">Lista di TData da controllare</param>
+///</summary>
+let ispresent(item:'T, lista:list<'T> when 'T :> TData<_>):bool =
+            if (lista.Length < 1) 
+                then 
+                    false
+                else
+                    if (((List.filter(fun (t:'T) -> item.Time.Equals(t.Time))) lista  ).Length = 0 ) 
+                        then 
+                            false
+                        else 
+                            true
